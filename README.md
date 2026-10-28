@@ -6,7 +6,7 @@
 
 Taktik harita · fizikli 3D zarlar · otomatik dövüş motoru · kritik yaralar · rol yetenekleri · hacklenebilir sistemler · senkron müzik · kampanya kaydı
 
-[**▶ Oyna: orhunx.github.io/night-city-masasi**](https://orhunx.github.io/night-city-masasi/)
+[**▶ Oyna: orhunx.github.io/night-city-red-konsep**](https://orhunx.github.io/night-city-red-konsep/)
 
 ![GitHub Pages](https://img.shields.io/badge/host-GitHub%20Pages-222?logo=github)
 ![Firebase](https://img.shields.io/badge/backend-Firebase-ffca28?logo=firebase&logoColor=black)
