@@ -242,7 +242,7 @@ const Dice3D = (function () {
     g.strokeStyle = 'rgba(64,255,150,.07)'; g.lineWidth = 1;
     for (let x = 0; x <= 1024; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 640); g.stroke(); }
     for (let y = 0; y <= 640; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(1024, y); g.stroke(); }
-    g.strokeStyle = 'rgba(242,194,48,.5)'; g.lineWidth = 3; g.strokeRect(14, 14, 996, 612);
+    g.strokeStyle = 'rgba(234,42,68,.55)'; g.lineWidth = 3; g.strokeRect(14, 14, 996, 612);
     g.fillStyle = 'rgba(64,255,150,.35)'; g.font = '600 20px monospace'; g.fillText('DICE//BAY-02', 30, 46); g.fillText('PHYS-RNG ARMED', 30, 612);
     g.textAlign = 'right'; g.fillText('NC-TABLE MK.III', 994, 46);
     [[24, 24], [1000, 24], [24, 616], [1000, 616]].forEach(([x, y]) => { g.fillStyle = '#2c3438'; g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); g.strokeStyle = '#11161a'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 5, y); g.lineTo(x + 5, y); g.moveTo(x, y - 5); g.lineTo(x, y + 5); g.stroke(); });
@@ -294,7 +294,7 @@ const Dice3D = (function () {
     const key = new T.DirectionalLight(0xffffff, 0.75); key.position.set(-5, 15, 8); key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -11, right: 11, top: 9, bottom: -9 }); scene.add(key);
     const monLight = new T.PointLight(0x3dff8a, 1.1, 26, 1.6); monLight.position.set(0, 5, -4.5); scene.add(monLight);
-    const amber = new T.PointLight(0xf2c230, 0.35, 20); amber.position.set(8, 3, 5); scene.add(amber);
+    const amber = new T.PointLight(0xea2a44, 0.35, 20); amber.position.set(8, 3, 5); scene.add(amber);
     // tepsi zemini
     const floor = new T.Mesh(new T.PlaneGeometry(W, D), new T.MeshStandardMaterial({ map: panelTexture(), roughness: 0.85, metalness: 0.1 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);

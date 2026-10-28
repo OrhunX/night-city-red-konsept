@@ -193,6 +193,7 @@ async function joinRoom(code) {
     }
   }
   FB.code = code;
+  if (isRoomGM()) gmModeEnter();
   const rooms = LS.get('rooms', []).filter(x => x.c !== code); rooms.unshift({ c: code, n: FB.room.name, gm: isRoomGM() ? 1 : 0, ts: Date.now() }); LS.set('rooms', rooms.slice(0, 20));
   LS.set('last', { c: code, n: FB.room.name });
   if (location.hash.slice(1) !== code) history.replaceState(null, '', '#' + code);
@@ -355,7 +356,8 @@ function runIntro() {
 function introReady() { if (INTRO.ready) return; INTRO.ready = true; $s('#inGo').classList.add('show'); $s('#inLogo').classList.add('show'); $s('#inBtn').focus({ preventScroll: true }); }
 function introSkipAnim() { INTRO.timers.forEach(clearTimeout); INTRO.timers = []; document.querySelectorAll('.die').forEach(d => { d.style.animationDuration = '0.01s'; d.style.animationDelay = '0s'; }); $s('#inBoot').textContent = '> hoş geldin, choom.\n'; introReady(); }
 function vidMuted() { return !!LS.get('vidMute', false); }
-function renderMute() { const b = $s('#stMute'); if (!b) return; const m = $s('#stVideo').muted; b.textContent = m ? '🔇 Ses kapalı' : '🔊 Ses açık'; b.setAttribute('aria-pressed', m ? 'true' : 'false'); }
+const gmBgOn = () => document.body.classList.contains('gm-bg');
+function renderMute() { const b = $s('#stMute'); if (!b) return; const m = gmBgOn() ? $s('#gmAudio').muted : $s('#stVideo').muted; b.textContent = m ? '🔇 Ses kapalı' : '🔊 Ses açık'; b.setAttribute('aria-pressed', m ? 'true' : 'false'); }
 function introEnter(silent) {
   const v = $s('#stVideo'); const intro = $s('#intro');
   INTRO.timers.forEach(clearTimeout); intro.classList.add('out'); setTimeout(() => { intro.hidden = true; }, 900);
@@ -365,13 +367,74 @@ function introEnter(silent) {
   renderMute();
   setTimeout(() => { const n = $s('#stName'); if (n && !n.value) n.focus({ preventScroll: true }); }, 950);
 }
-function stopMenuVideo() { const v = $s('#stVideo'); if (!v) return; v.pause(); v.classList.remove('on'); v.removeAttribute('src'); v.load(); }
+function stopMenuVideo() { const a = $s('#gmAudio'); if (a) a.pause(); const v = $s('#stVideo'); if (!v) return; v.pause(); v.classList.remove('on'); v.removeAttribute('src'); v.load(); }
 document.addEventListener('click', e => {
   if (e.target.id === 'inBtn') { introEnter(false); return; }
   if (e.target.id === 'inSkip') { introEnter(true); return; }
+  if (e.target.id === 'stMute' && gmBgOn()) { const a = $s('#gmAudio'); a.muted = !a.muted; LS.set('vidMute', a.muted); if (!a.muted && a.paused) a.play().catch(() => { }); renderMute(); return; }
   if (e.target.id === 'stMute') { const v = $s('#stVideo'); v.muted = !v.muted; LS.set('vidMute', v.muted); if (!v.muted && v.paused) v.play().catch(() => { }); renderMute(); return; }
   if (e.target.closest && e.target.closest('#intro') && !INTRO.ready) introSkipAnim();
 });
 document.addEventListener('keydown', e => { const intro = $s('#intro'); if (!intro || intro.hidden || intro.classList.contains('out')) return; if (!INTRO.ready && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { e.preventDefault(); introSkipAnim(); } });
-runIntro();
+
+// ===== GM GİRİŞ EKRANI =====
+const gmModeOn = () => !!LS.get('gmMode', false);
+function gmGlitch() { const g = $s('#gmGlitch'); if (!g) return; g.hidden = true; void g.offsetWidth; g.hidden = false; clearTimeout(g._t); g._t = setTimeout(() => { g.hidden = true; }, 600); }
+function gmAudioPlay() { const a = $s('#gmAudio'); if (!a) return; a.volume = 0.7; a.muted = vidMuted(); if (a.paused) a.play().catch(() => { }); }
+function gmBg() {
+  document.body.classList.add('gm-bg');
+  const v = $s('#stVideo'); if (!v) return;
+  if (!/gm-loop/.test(v.getAttribute('src') || '')) { v.setAttribute('src', 'media/gm-loop.mp4'); v.setAttribute('poster', 'media/gm-loop.jpg'); v.load(); }
+  v.muted = true; v.loop = true; v.classList.add('on'); const p = v.play(); if (p && p.catch) p.catch(() => { });
+  renderMute();
+}
+function showGmIntro() {
+  const el = $s('#gmIntro'); if (!el) return;
+  $s('#intro').hidden = true; el.hidden = false;
+  const v = $s('#gmVid'); const p = v.play(); if (p && p.catch) p.catch(() => { });
+  setTimeout(() => $s('#gmGo').focus({ preventScroll: true }), 50);
+}
+function gmMenuRender() {
+  const l = LS.get('last', null); const c = $s('#gmMenu [data-gm="cont"]');
+  c.hidden = !l; if (l) c.querySelector('small').textContent = (l.n || 'Son masa') + ' · ' + showCode(l.c);
+  $s('#gmWho').textContent = FB.name || LS.get('name', '') || '';
+}
+function gmPress(silent) {
+  if (silent) LS.set('vidMute', true);
+  gmGlitch(); gmAudioPlay();
+  const el = $s('#gmIntro'); el.classList.add('menu'); $s('#gmPress').hidden = true;
+  gmMenuRender(); $s('#gmMenu').hidden = false;
+  setTimeout(() => { const f = $s('#gmMenu .gmi-it:not([hidden])'); if (f) f.focus({ preventScroll: true }); }, 80);
+}
+function closeGmIntro(after) {
+  gmGlitch(); gmBg();
+  const el = $s('#gmIntro'); el.classList.add('out');
+  setTimeout(() => { el.hidden = true; const v = $s('#gmVid'); v.pause(); }, 520);
+  if (after) setTimeout(after, 120);
+}
+// odayı GM olarak açınca: GM moduna geç
+function gmModeEnter() {
+  const first = !gmBgOn(); LS.set('gmMode', true);
+  if (first && !$s('#startScr').hidden) { gmGlitch(); gmBg(); gmAudioPlay(); }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#gmGo')) { gmPress(false); return; }
+  if (e.target.id === 'gmSilent') { gmPress(true); return; }
+  const it = e.target.closest('#gmMenu [data-gm]'); if (!it) return;
+  const k = it.dataset.gm;
+  if (k === 'cont') { const l = LS.get('last', null); closeGmIntro(() => { if (!l) return; if (FB.name) joinRoom(l.c); else { startMsg('Önce masada görünecek adını yaz.', 'err'); $s('#stName').focus(); } }); }
+  if (k === 'new') closeGmIntro(() => { $s('#stCreate').hidden = false; $s('#stRoomName').focus(); });
+  if (k === 'rooms') closeGmIntro(() => { $s('#stRooms').scrollIntoView({ block: 'center' }); const r = $s('#stRooms .st-room'); if (r) r.focus({ preventScroll: true }); });
+  if (k === 'join') closeGmIntro(() => { $s('#stJoin').hidden = false; $s('#stCode').focus(); });
+  if (k === 'set') closeGmIntro(() => { $s('#stName').focus(); });
+});
+document.addEventListener('keydown', e => {
+  const el = $s('#gmIntro'); if (!el || el.hidden || el.classList.contains('out')) return;
+  if (!$s('#gmPress').hidden) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gmPress(false); } return; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault(); const its = [...el.querySelectorAll('.gmi-it:not([hidden])')]; const i = its.indexOf(document.activeElement);
+    const n = its[(i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length]; if (n) n.focus();
+  }
+});
+if (gmModeOn() && $s('#gmIntro')) showGmIntro(); else runIntro();
 fbInit();

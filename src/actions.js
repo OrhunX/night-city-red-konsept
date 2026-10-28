@@ -223,7 +223,7 @@ async function runActionInner(A) {
     const t0 = S.tokens[A.targets[0]]; if (!a.veh) { toast('Çarpmak için araçta olmalısın.', 'err'); return; }
     if (!t0 || sq(a, t0) > 1) { toast('Çarpmak için aracı hedefin yanına sür.', 'err'); return; }
     await docSet('act', 'a' + uid(), { by: S.me.id || 'local', ts: Date.now(), a: A.actor, aName: a.name, kind: 'ram', label: 'Çarpma · ' + a.veh.n, w: { n: a.veh.n, d: '6d6', cls: 'veh' }, tg: { [A.targets[0]]: { n: t0.hidden ? 'Bilinmeyen' : t0.name, st: 'def', dv: RAM_DV } }, stage: 'def', atk: { total: RAM_DV, d: 0 }, dmg: null, body: +c.stats.BODY || 0, carm: false });
-    playFx({ k: 'text', b: A.actor, txt: 'GAZ!', col: '#f2c230' });
+    playFx({ k: 'text', b: A.actor, txt: 'GAZ!', col: '#f2a43a' });
     return;
   }
   // erişim kontrolü
@@ -341,7 +341,7 @@ async function resolveDefense(id, tid) {
   } else if (kind === 'supp') {
     const r = c ? await defRoll(id, tid, who, 'Bastırma ateşine dayan', 'WILL', 'Concentration', c) : { total: 10 }; if (!r) return;
     hit = atk > r.total; D = r.total; res = hit ? 'Sipere koşmalı' : 'Yerinde kaldı';
-    fxAttack(d, tid, hit ? 'hit' : 'miss', { txt: hit ? 'SİPERE!' : 'DAYANDI', col: hit ? '#f2c230' : '#41cfd6' });
+    fxAttack(d, tid, hit ? 'hit' : 'miss', { txt: hit ? 'SİPERE!' : 'DAYANDI', col: hit ? '#f2a43a' : '#41cfd6' });
     return docPatch('act', id, { tg: { [tid]: { st: 'done', def: D, hit, res } } });
   } else if (['melee', 'brawl', 'martial'].indexOf(kind) >= 0) {
     const r = c ? await defRoll(id, tid, who, 'Savun: ' + d.aName + ' saldırıyor', 'DEX', 'Evasion', c) : { total: 13 }; if (!r) return;
@@ -447,7 +447,7 @@ async function rollActDamage(id) {
   // çarpma: araç da 6d6 alır, sürücü Whiplash
   if (k === 'ram' && at && at.veh) {
     at.veh.sdp = Math.max(0, at.veh.sdp - r.total); const dead = at.veh.sdp <= 0; const vn = at.veh.n; if (dead) at.veh = null; setDoc(tokPath(d.a), at);
-    playFx({ k: dead ? 'boom' : 'text', b: d.a, c: { x: at.x, y: at.y }, txt: dead ? vn.toUpperCase() + ' HURDA' : 'SDP −' + r.total, col: '#f2c230', r: 1.5 });
+    playFx({ k: dead ? 'boom' : 'text', b: d.a, c: { x: at.x, y: at.y }, txt: dead ? vn.toUpperCase() + ' HURDA' : 'SDP −' + r.total, col: '#f2a43a', r: 1.5 });
     if (ac) { injAdd(ac, 'h8'); S.why = 'çarpma: Whiplash'; saveCharNow(at.charId); renderChars(); }
   }
   await docPatch('act', id, { dmg: { total, sixes: r.sixes, vals: r.vals } });

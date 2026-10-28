@@ -218,7 +218,7 @@ function drawDevices(t) {
       ctx.fillStyle = '#12161a'; ctx.strokeStyle = col; ctx.lineWidth = 2 / v.s; rrect(ctx, -r, -r * 0.6, r * 1.5, r * 1.2, 2); ctx.fill(); ctx.stroke();
       ctx.fillStyle = s.off ? '#636d68' : col; ctx.beginPath(); ctx.arc(r * 0.55, 0, r * 0.32, 0, 7); ctx.fill();
     } else if (d.t === 'door') {
-      const st = doorState(d); const c2 = st === 'locked' ? '#ff4a5f' : st === 'open' ? '#7bd88f' : '#f2c230';
+      const st = doorState(d); const c2 = st === 'locked' ? '#ff4a5f' : st === 'open' ? '#7bd88f' : '#f2a43a';
       const horiz = '#='.indexOf(tAt(m, d.x - 1, d.y)) >= 0 || '#='.indexOf(tAt(m, d.x + 1, d.y)) >= 0;
       ctx.translate(cx, cy); if (!horiz) ctx.rotate(Math.PI / 2);
       ctx.strokeStyle = c2; ctx.lineWidth = 4 / v.s;
@@ -242,7 +242,7 @@ function drawDevices(t) {
       for (let i = 0; i < 2; i++) { const k = (ph + i * 0.5) % 1; ctx.globalAlpha = (d.hid && !s.seen ? 0.55 : 1) * (1 - k); ctx.beginPath(); ctx.arc(0, -r * 0.3, r * (0.45 + k * 0.9), -Math.PI * 0.85, -Math.PI * 0.15); ctx.stroke(); }
     }
     ctx.restore();
-    if (S.selDev === d.id) { ctx.strokeStyle = '#f2c230'; ctx.lineWidth = 1.5 / v.s; ctx.setLineDash([3 / v.s, 3 / v.s]); ctx.strokeRect(d.x * CS + 1, d.y * CS + 1, CS - 2, CS - 2); ctx.setLineDash([]); }
+    if (S.selDev === d.id) { ctx.strokeStyle = '#f5f0ee'; ctx.lineWidth = 1.5 / v.s; ctx.setLineDash([3 / v.s, 3 / v.s]); ctx.strokeRect(d.x * CS + 1, d.y * CS + 1, CS - 2, CS - 2); ctx.setLineDash([]); }
   });
   // bağlı netrunner'dan erişim noktasına veri hattı
   Object.entries(S.tokens).forEach(([tid, tk]) => {
