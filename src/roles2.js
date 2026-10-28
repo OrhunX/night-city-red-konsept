@@ -49,7 +49,7 @@ function role2MenuPick(k, actor, target, b) {
   const rk = rankOf(c), who = charLabel(c);
   if (k === 'rbImpact') {
     const dv = +b.dataset.dv;
-    lockRoll(async () => { const am = autoMods(c, null); am.mod = withLuck(a.charId, am.mod, am.notes); const r = await doCheck({ who, label: 'Charismatic Impact · ' + RB_DV.find(x => x[0] === dv)[1], base: rk, mod: am.mod, dv, notes: am.notes, pre: 'Charismatic Impact →' }); playFx({ k: 'talk', b: actor, txt: r.okReal ? 'HAYRANLAR SENİNLE' : 'ETKİLEMEDİ', col: r.okReal ? '#f2a43a' : '#929b96' }); chatEvent(a.name + ' Charismatic Impact: ' + (r.okReal ? 'başarılı; hayranlar istenen iyilik için ellerinden geleni yapar.' : 'başarısız; aynı iyilik bu hayranlardan bir hafta istenemez.')); });
+    lockRoll(async () => { const am = autoMods(c, null); am.mod = withLuck(a.charId, am.mod, am.notes); const r = await doCheck({ who, label: 'Charismatic Impact · ' + RB_DV.find(x => x[0] === dv)[1], base: rk, mod: am.mod, dv, notes: am.notes, pre: 'Charismatic Impact →' }); playFx({ k: 'talk', b: actor, txt: r.okReal ? 'HAYRANLAR SENİNLE' : 'ETKİLEMEDİ', col: r.okReal ? '#f2c230' : '#929b96' }); chatEvent(a.name + ' Charismatic Impact: ' + (r.okReal ? 'başarılı; hayranlar istenen iyilik için ellerinden geleni yapar.' : 'başarısız; aynı iyilik bu hayranlardan bir hafta istenemez.')); });
     return true;
   }
   if (k === 'mdRumor' || k === 'mdPub') {

@@ -205,7 +205,7 @@ function roleMenuPick(k, actor, target, b) {
   if (k === 'drug') { runDrug(actor, target || actor, b.dataset.drug); return true; }
   if (k === 'jury') { runAction({ kind: 'jury', actor, targets: [target || actor] }); return true; }
   if (k === 'backup') { lockRoll(() => callBackup(actor)); return true; }
-  if (k === 'vehin') { const v = VEH[b.dataset.veh]; a.veh = { k: b.dataset.veh, n: v.n, sdp: v.sdp, max: v.sdp, move: v.move }; setDoc(tokPath(actor), a); playFx({ k: 'gear', b: actor, txt: v.n.toUpperCase(), col: '#f2a43a' }); renderTokCard(); dirty(); return true; }
+  if (k === 'vehin') { const v = VEH[b.dataset.veh]; a.veh = { k: b.dataset.veh, n: v.n, sdp: v.sdp, max: v.sdp, move: v.move }; setDoc(tokPath(actor), a); playFx({ k: 'gear', b: actor, txt: v.n.toUpperCase(), col: '#f2c230' }); renderTokCard(); dirty(); return true; }
   if (k === 'vehout') { a.veh = null; setDoc(tokPath(actor), a); playFx({ k: 'text', b: actor, txt: 'ARAÇTAN İNDİ', col: '#e7e3d8' }); renderTokCard(); dirty(); return true; }
   if (k === 'man13' || k === 'man17') { lockRoll(() => maneuver(actor, k === 'man13' ? 13 : 17)); return true; }
   if (k === 'ram') { runAction({ kind: 'ram', actor, targets: [target] }); return true; }
@@ -253,7 +253,7 @@ const ROLE_ACTS = {
     const tk = S.tokens['t_' + id]; if (tk && turnOn() && !S.me.isGM && !S.caFree) { const [ok, why] = mayAct('t_' + id, 'act'); if (!ok) { toast('Dövüş sırasında Combat Awareness bir Aksiyonla dağıtılır: ' + why, 'err'); return; } } const x = CA.find(y => y.k === b.dataset.k); const a = caOf(c); if (!a) return;
     const nv = a[x.k] + (+b.dataset.v) * x.step; if (nv < 0 || nv > x.max) return; if (+b.dataset.v > 0 && caSum(a) + x.step > rankOf(c)) return;
     a[x.k] = nv; c.ca = a; saveCharNow(id); renderChars(); renderCaPanel();
-    const t = S.tokens['t_' + id]; if (t) playFx({ k: 'scan', b: 't_' + id, txt: x.n.split(' ')[0].toUpperCase() + ' ' + nv, col: '#f2a43a' }, true);
+    const t = S.tokens['t_' + id]; if (t) playFx({ k: 'scan', b: 't_' + id, txt: x.n.split(' ')[0].toUpperCase() + ' ' + nv, col: '#f2c230' }, true);
   },
   caClose: () => { S.caPanel = null; renderCaPanel(); },
   juryDone: b => { const id = b.closest('.sheet').dataset.id, c = S.chars[id]; c.spBody = ARMOR[c.armor] || 0; c.spHead = ARMOR[c.armor] || 0; c.juryLock = 0; c.juryPrev = null; saveCharNow(id); renderChars(); },

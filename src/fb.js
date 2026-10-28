@@ -162,11 +162,12 @@ function renderStart() {
 async function renderMyRooms() {
   let list = LS.get('rooms', []);
   try { const q = await FB.fs.collection('rooms').where('gms', 'array-contains', FB.uid).limit(20).get(); q.docs.forEach(d => { if (!list.some(x => x.c === d.id)) list.push({ c: d.id, n: d.data().name, gm: 1, ts: d.data().created || 0 }); }); } catch (e) { }
-  list = list.sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 12);
-  $s('#stRooms').innerHTML = list.length ? list.map(x => '<li class="st-ri"><button class="st-room" data-room="' + esc(x.c) + '"><b>' + esc(x.n || 'Adsız oda') + '</b><small>' + showCode(x.c) + (x.gm ? ' · GM' : ' · oyuncu') + '</small></button>' + (x.gm ? '<button type="button" class="st-del" data-delroom="' + esc(x.c) + '" aria-label="' + esc(x.n || 'Oda') + ' odasını sil" title="Odayı sil">Sil</button>' : '<button type="button" class="st-del" data-forget="' + esc(x.c) + '" aria-label="Listeden kaldır" title="Listeden kaldır">×</button>') + '</li>').join('') : '<li class="st-empty">Henüz bir odaya girmedin.</li>';
+  list = list.filter(x => FB.gmMode ? !!x.gm : !x.gm).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 12);
+  $s('#stRooms').innerHTML = list.length ? list.map(x => '<li class="st-ri"><button class="st-room" data-room="' + esc(x.c) + '"><b>' + esc(x.n || 'Adsız oda') + '</b><small>' + showCode(x.c) + (x.gm ? ' · GM' : ' · oyuncu') + '</small></button>' + (x.gm ? '<button type="button" class="st-del" data-delroom="' + esc(x.c) + '" aria-label="' + esc(x.n || 'Oda') + ' odasını sil" title="Odayı sil">Sil</button>' : '<button type="button" class="st-del" data-forget="' + esc(x.c) + '" aria-label="Listeden kaldır" title="Listeden kaldır">×</button>') + '</li>').join('') : '<li class="st-empty">' + (FB.gmMode ? 'Henüz bir masa kurmadın.' : 'Henüz bir odaya girmedin.') + '</li>';
 }
 function needName() { const n = $s('#stName').value.trim().slice(0, 24); if (!n) { startMsg('Önce masada görünecek adını yaz.', 'err'); $s('#stName').focus(); return null; } FB.name = n; LS.set('name', n); return n; }
 async function createRoom() {
+  if (!FB.gmMode) { startMsg('Oda kurmak için önce GM girişi yap.', 'err'); return; }
   if (!needName()) return; const nm = ($s('#stRoomName').value.trim() || (FB.name + ' masası')).slice(0, 40);
   startMsg('Oda kuruluyor…');
   for (let t = 0; t < 5; t++) {
@@ -185,16 +186,14 @@ async function joinRoom(code) {
   FB.room = s.data();
   // odayı kuran bu kimlikse: GM mi oyuncu mu olarak gireceğini sor
   if (isRoomGM() && FB.seat !== 'player') {
-    let seat = getSeat(code);
-    if (!seat) { seat = await askSeat(code); if (!seat) { startMsg(''); return; } setSeat(code, seat); }
+    const seat = FB.gmMode ? 'gm' : 'player'; setSeat(code, seat);
     if (seat === 'player') {
-      startMsg('Oyuncu kimliği hazırlanıyor…');
+      startMsg('Oyuncu olarak bağlanılıyor…');
       try { await usePlayerSeat(); s = await FB.fs.doc('rooms/' + code).get(); FB.room = s.data(); } catch (e) { startMsg('Oyuncu kimliği açılamadı: ' + (e.code || e.message), 'err'); return; }
     }
   }
   FB.code = code;
-  if (isRoomGM()) gmModeEnter();
-  const rooms = LS.get('rooms', []).filter(x => x.c !== code); rooms.unshift({ c: code, n: FB.room.name, gm: isRoomGM() ? 1 : 0, ts: Date.now() }); LS.set('rooms', rooms.slice(0, 20));
+  const prevR = LS.get('rooms', []).find(x => x.c === code); const rooms = LS.get('rooms', []).filter(x => x.c !== code); rooms.unshift({ c: code, n: FB.room.name, gm: (isRoomGM() || (FB.seat === 'player' && prevR && prevR.gm)) ? 1 : 0, ts: Date.now() }); LS.set('rooms', rooms.slice(0, 20));
   LS.set('last', { c: code, n: FB.room.name });
   if (location.hash.slice(1) !== code) history.replaceState(null, '', '#' + code);
   installShim();
@@ -239,6 +238,7 @@ function roomClosedOverlay() {
   document.body.appendChild(d); setTimeout(() => { history.replaceState(null, '', location.pathname); location.reload(); }, 3500);
 }
 function showLobby() {
+  { const gb = $s('#stGmBtn'); if (gb) gb.hidden = true; }
   $s('#stMain').hidden = true; $s('#stLobby').hidden = false;
   $s('#lbName').textContent = FB.room.name || 'Oda';
   $s('#lbCode').textContent = showCode(FB.code);
@@ -377,25 +377,26 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { const intro = $s('#intro'); if (!intro || intro.hidden || intro.classList.contains('out')) return; if (!INTRO.ready && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { e.preventDefault(); introSkipAnim(); } });
 
-// ===== GM GİRİŞ EKRANI =====
-const gmModeOn = () => !!LS.get('gmMode', false);
+// ===== GM GİRİŞİ: kırmızı-beyaz mod, oda kurma yetkisi =====
+FB.gmMode = false;
 function gmGlitch() { const g = $s('#gmGlitch'); if (!g) return; g.hidden = true; void g.offsetWidth; g.hidden = false; clearTimeout(g._t); g._t = setTimeout(() => { g.hidden = true; }, 600); }
 function gmAudioPlay() { const a = $s('#gmAudio'); if (!a) return; a.volume = 0.7; a.muted = vidMuted(); if (a.paused) a.play().catch(() => { }); }
-function gmBg() {
-  document.body.classList.add('gm-bg');
+function setMenuVideo(gm) {
   const v = $s('#stVideo'); if (!v) return;
-  if (!/gm-loop/.test(v.getAttribute('src') || '')) { v.setAttribute('src', 'media/gm-loop.mp4'); v.setAttribute('poster', 'media/gm-loop.jpg'); v.load(); }
-  v.muted = true; v.loop = true; v.classList.add('on'); const p = v.play(); if (p && p.catch) p.catch(() => { });
+  const src = gm ? 'media/gm-loop.mp4' : 'media/intro.mp4', poster = gm ? 'media/gm-loop.jpg' : 'media/intro.jpg';
+  if ((v.getAttribute('src') || '') !== src) { v.setAttribute('src', src); v.setAttribute('poster', poster); v.load(); }
+  v.loop = true; v.muted = gm ? true : vidMuted(); v.classList.add('on'); const p = v.play(); if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => { }); });
   renderMute();
 }
 function showGmIntro() {
   const el = $s('#gmIntro'); if (!el) return;
-  $s('#intro').hidden = true; el.hidden = false;
-  const v = $s('#gmVid'); const p = v.play(); if (p && p.catch) p.catch(() => { });
+  const v0 = $s('#stVideo'); if (v0) v0.pause();
+  el.classList.remove('menu', 'out'); $s('#gmPress').hidden = false; $s('#gmMenu').hidden = true; el.hidden = false;
+  gmGlitch(); const v = $s('#gmVid'); v.currentTime = 0; const p = v.play(); if (p && p.catch) p.catch(() => { });
   setTimeout(() => $s('#gmGo').focus({ preventScroll: true }), 50);
 }
 function gmMenuRender() {
-  const l = LS.get('last', null); const c = $s('#gmMenu [data-gm="cont"]');
+  const rooms = LS.get('rooms', []).filter(x => x.gm); const l = rooms[0]; const c = $s('#gmMenu [data-gm="cont"]');
   c.hidden = !l; if (l) c.querySelector('small').textContent = (l.n || 'Son masa') + ' · ' + showCode(l.c);
   $s('#gmWho').textContent = FB.name || LS.get('name', '') || '';
 }
@@ -406,35 +407,43 @@ function gmPress(silent) {
   gmMenuRender(); $s('#gmMenu').hidden = false;
   setTimeout(() => { const f = $s('#gmMenu .gmi-it:not([hidden])'); if (f) f.focus({ preventScroll: true }); }, 80);
 }
-function closeGmIntro(after) {
-  gmGlitch(); gmBg();
+// GM moduna geç: tema, müzik, video, oda kurma
+function gmModeOn(after) {
+  FB.gmMode = true; document.body.classList.add('gm-theme', 'gm-bg');
+  gmGlitch(); setMenuVideo(true); gmAudioPlay();
   const el = $s('#gmIntro'); el.classList.add('out');
-  setTimeout(() => { el.hidden = true; const v = $s('#gmVid'); v.pause(); }, 520);
+  setTimeout(() => { el.hidden = true; $s('#gmVid').pause(); }, 520);
+  $s('#stGmBtn').textContent = 'Normal ekrana dön';
+  renderMyRooms(); startMsg('');
   if (after) setTimeout(after, 120);
 }
-// odayı GM olarak açınca: GM moduna geç
-function gmModeEnter() {
-  const first = !gmBgOn(); LS.set('gmMode', true);
-  if (first && !$s('#startScr').hidden) { gmGlitch(); gmBg(); gmAudioPlay(); }
+function gmModeOff() {
+  FB.gmMode = false; document.body.classList.remove('gm-theme', 'gm-bg');
+  const a = $s('#gmAudio'); if (a) a.pause();
+  gmGlitch(); setMenuVideo(false);
+  $s('#stGmBtn').textContent = 'GM girişi'; $s('#stCreate').hidden = true;
+  renderMyRooms(); startMsg('');
 }
 document.addEventListener('click', e => {
+  if (e.target.id === 'stGmBtn') { if (FB.gmMode) gmModeOff(); else showGmIntro(); return; }
   if (e.target.closest('#gmGo')) { gmPress(false); return; }
   if (e.target.id === 'gmSilent') { gmPress(true); return; }
   const it = e.target.closest('#gmMenu [data-gm]'); if (!it) return;
   const k = it.dataset.gm;
-  if (k === 'cont') { const l = LS.get('last', null); closeGmIntro(() => { if (!l) return; if (FB.name) joinRoom(l.c); else { startMsg('Önce masada görünecek adını yaz.', 'err'); $s('#stName').focus(); } }); }
-  if (k === 'new') closeGmIntro(() => { $s('#stCreate').hidden = false; $s('#stRoomName').focus(); });
-  if (k === 'rooms') closeGmIntro(() => { $s('#stRooms').scrollIntoView({ block: 'center' }); const r = $s('#stRooms .st-room'); if (r) r.focus({ preventScroll: true }); });
-  if (k === 'join') closeGmIntro(() => { $s('#stJoin').hidden = false; $s('#stCode').focus(); });
-  if (k === 'set') closeGmIntro(() => { $s('#stName').focus(); });
+  if (k === 'cont') { const l = LS.get('rooms', []).find(x => x.gm); gmModeOn(() => { if (!l) return; if (FB.name) joinRoom(l.c); else { startMsg('Önce masada görünecek adını yaz.', 'err'); $s('#stName').focus(); } }); }
+  if (k === 'new') gmModeOn(() => { $s('#stCreate').hidden = false; $s('#stRoomName').focus(); });
+  if (k === 'rooms') gmModeOn(() => { $s('#stRooms').scrollIntoView({ block: 'center' }); const r = $s('#stRooms .st-room'); if (r) r.focus({ preventScroll: true }); });
+  if (k === 'set') gmModeOn(() => { $s('#stName').focus(); });
+  if (k === 'back') { const el = $s('#gmIntro'); el.classList.add('out'); setTimeout(() => { el.hidden = true; $s('#gmVid').pause(); }, 520); const a = $s('#gmAudio'); if (a) a.pause(); gmGlitch(); setMenuVideo(false); }
 });
 document.addEventListener('keydown', e => {
   const el = $s('#gmIntro'); if (!el || el.hidden || el.classList.contains('out')) return;
+  if (e.key === 'Escape') { e.preventDefault(); el.querySelector('[data-gm="back"]').click(); return; }
   if (!$s('#gmPress').hidden) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gmPress(false); } return; }
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault(); const its = [...el.querySelectorAll('.gmi-it:not([hidden])')]; const i = its.indexOf(document.activeElement);
     const n = its[(i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length]; if (n) n.focus();
   }
 });
-if (gmModeOn() && $s('#gmIntro')) showGmIntro(); else runIntro();
+runIntro();
 fbInit();

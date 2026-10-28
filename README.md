@@ -128,9 +128,10 @@ Tokene sağ tıklayınca, karakter sayfasına göre hazırlanmış bir aksiyon m
 - GM oturum sonunda kitaptaki tabloyla (Group, Warrior, Socializer, Explorer, Roleplayer) IP dağıtır.
 - Oyuncu IP harcar: beceri 20 × seviye (zor beceriler 40 ×), rol yeteneği 60 × rütbe, seviye atlanamaz. Kilitli sayfada GM onayı gerekir; istersen otomatik onay.
 
-### GM giriş ekranı
-- Oda kuran ya da kendi odasına GM olarak dönen kişi, siteyi bir sonraki açışında oyuncuların zar intro'su yerine Cyberpunk 2077 ana menüsü havasında bir giriş ekranı görür: dönen arka plan videosu, ana menü müziği ve oyundaki gibi bir menü (Devam et, Yeni masa kur, Odalarım, Oyuncu olarak katıl, Ayarlar).
-- Arayüz derin kırmızı ve beyaz tonlarında; hasar, başarı ve NET renkleri ayrı tutuldu.
+### GM girişi
+- Site herkes için sarı temayla, zarlı açılış ve fragman arka planıyla açılır. Normal ekranda sadece kodla odaya katılınır; oda kurulamaz.
+- Köşedeki **GM girişi** düğmesi Cyberpunk 2077 açılış ekranını, ardından kırmızı-beyaz GM menüsünü açar (Devam et, Yeni masa kur, Odalarım, Ayarlar, Normal ekrana dön). Yeni müzik ve arka plan videosuyla birlikte GM statüsü ve oda kurma yetkisi burada gelir.
+- GM'in masa arayüzü kırmızı-beyaz, oyuncularınki sarı kalır. GM kendi odasına normal ekrandan girerse oyuncu olarak girer.
 
 ### Sohbet, odalar ve karakter klasörü
 - **Sohbet** sekmesi: mesajlar, `/k` karakter ağzından, `/me`, `/r 2d6+3` zar, fısıltılar. Zarlar ve oyun olayları da akışa düşer; gizli zarlar gizli kalır.
