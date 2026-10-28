@@ -1,0 +1,101 @@
+<style>
+.startscr { position: fixed; inset: 0; z-index: 200; overflow: auto; background:
+  radial-gradient(1200px 600px at 75% -10%, rgba(255,74,95,.18), transparent 60%),
+  radial-gradient(900px 500px at 0% 110%, rgba(65,207,214,.14), transparent 60%),
+  repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px), var(--bg);
+  display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) 16px 24px; }
+.st-wrap { width: min(980px, 100%); display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
+@media (max-width: 820px) { .st-wrap { grid-template-columns: 1fr; gap: 18px; } }
+.st-brand { display: grid; gap: 10px; align-content: start; padding-top: 8px; }
+.st-brand .mark { width: 54px; height: 54px; display: grid; place-items: center; background: var(--acc); color: var(--acc-ink); font: 800 26px/1 var(--disp); clip-path: polygon(0 0, 100% 0, 100% 72%, 82% 100%, 0 100%); }
+.st-title { margin: 0; font: 800 clamp(44px, 8vw, 86px)/.86 var(--disp); letter-spacing: .01em; text-transform: uppercase; color: var(--fg); position: relative; }
+.st-title span { color: var(--acc); display: block; }
+.st-title::after { content: attr(data-t); position: absolute; left: 3px; top: 0; color: var(--hot); opacity: .0; mix-blend-mode: screen; animation: stGlitch 6s infinite steps(1); pointer-events: none; white-space: pre-line; }
+@keyframes stGlitch { 0%, 92%, 100% { opacity: 0; transform: none; } 93% { opacity: .7; transform: translate(-4px, 1px); clip-path: inset(10% 0 55% 0); } 95% { opacity: .6; transform: translate(4px, -1px); clip-path: inset(60% 0 8% 0); } }
+@media (prefers-reduced-motion: reduce) { .st-title::after { animation: none; } }
+.st-sub { margin: 0; color: var(--muted); font-size: 15px; max-width: 46ch; }
+.st-tag { font: 600 11px var(--mono); letter-spacing: .14em; color: var(--cool); text-transform: uppercase; }
+.st-feats { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+.st-feats li::before { content: "▸ "; color: var(--acc); }
+.st-panel { background: rgba(18,22,26,.94); border: 1px solid var(--line2); box-shadow: 0 20px 60px rgba(0,0,0,.55); padding: 18px; display: grid; gap: 14px; }
+.st-panel h2 { margin: 0; font: 700 13px/1 var(--disp); letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+.st-field { display: grid; gap: 6px; }
+.st-field label { font-size: 12px; color: var(--muted); }
+.st-field input { min-height: 42px; font-size: 16px; }
+.st-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.st-col { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
+.st-col.on { border-color: var(--fg); }
+.st-btns { display: grid; gap: 8px; }
+.st-big { display: grid; gap: 2px; text-align: left; padding: 12px 14px; background: var(--raise); border: 1px solid var(--line2); color: var(--fg); cursor: pointer; font: 700 20px/1 var(--disp); letter-spacing: .04em; text-transform: uppercase; }
+.st-big small { font: 400 12px var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.st-big:hover, .st-big:focus-visible { border-color: var(--acc); }
+.st-big.pri { background: var(--acc); color: var(--acc-ink); border-color: var(--acc); }
+.st-big.pri small { color: #3d3208; }
+.st-sub2 { display: grid; gap: 8px; border-left: 2px solid var(--acc); padding: 4px 0 4px 10px; }
+.st-sub2 .row { display: flex; gap: 6px; } .st-sub2 input { flex: 1; min-width: 0; min-height: 40px; font-size: 16px; }
+#stCode { font-family: var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.st-msg { margin: 0; font-size: 13px; color: var(--cool); } .st-msg.err { color: #ff9aa6; }
+.st-rooms { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 220px; overflow: auto; }
+.st-room { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px; align-items: center; background: transparent; border: 1px solid var(--line); color: var(--fg); padding: 8px 10px; cursor: pointer; }
+.st-room:hover { border-color: var(--cool); } .st-room small { font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
+.st-empty { color: var(--dim); font-size: 12.5px; }
+.st-link { background: none; border: 0; color: var(--cool); cursor: pointer; text-decoration: underline; padding: 0; font: inherit; font-size: 12.5px; justify-self: start; }
+.st-link:disabled { color: var(--ok); text-decoration: none; cursor: default; }
+.st-help { font-size: 13px; color: var(--muted); display: grid; gap: 6px; } .st-help p { margin: 0; }
+.st-codebig { font: 800 clamp(34px, 7vw, 52px)/1 var(--mono); letter-spacing: .08em; color: var(--acc); }
+.st-role { font: 600 11px var(--mono); padding: 3px 8px; border: 1px solid var(--line2); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; justify-self: start; }
+.st-role.gm { color: var(--acc); border-color: #5a4a10; }
+.st-peers { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.st-peers li { display: flex; gap: 8px; align-items: center; font-size: 14px; } .st-peers i { font: 600 10px var(--mono); color: var(--acc); font-style: normal; }
+.st-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.roomchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.roomchip .rc-n { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roomchip button { background: var(--raise); border: 1px solid var(--line2); color: var(--fg); padding: 4px 8px; cursor: pointer; font: 600 12px var(--mono); }
+.roomchip .rc-code { color: var(--acc); letter-spacing: .06em; }
+@media (max-width: 720px) { .roomchip .rc-n { display: none; } }
+</style>
+<div id="startScr" class="startscr">
+  <div class="st-wrap">
+    <div class="st-brand">
+      <span class="mark">NC</span>
+      <span class="st-tag">Cyberpunk RED · dijital masa</span>
+      <h1 class="st-title" lang="en" data-t="Night&#10;City Masası">Night<span>City Masası</span></h1>
+      <p class="st-sub">Arkadaşlarınla internetten aynı masada: taktik harita, fizikli zarlar, NPC'ler, NET sistemleri ve otomatik kurallar. GM oda kurar, oyuncular kodla katılır.</p>
+      <ul class="st-feats"><li>Oda kodu ile katılım, hesap gerekmez</li><li>Gizli zarlar ve gizli DV'ler sadece GM'de</li><li>Kampanya kaydı ve geri yükleme</li></ul>
+    </div>
+    <div class="st-panel" id="stMain">
+      <h2>Kimlik</h2>
+      <div class="st-field"><label for="stName">Masada görünecek adın</label><input id="stName" maxlength="24" autocomplete="nickname" placeholder="ör. V, Johnny, Rogue"></div>
+      <div class="st-colors" id="stColors" role="group" aria-label="Rengin"></div>
+      <button type="button" class="st-link" id="stGoogle">Google ile bağla</button>
+      <h2>Oyun</h2>
+      <div class="st-btns">
+        <button type="button" class="st-big pri" id="stCont" hidden></button>
+        <button type="button" class="st-big" id="stCreateBtn">Oda kur<small>Game Master olarak yeni bir masa aç</small></button>
+        <div class="st-sub2" id="stCreate" hidden><div class="row"><input id="stRoomName" maxlength="40" placeholder="Oda adı, ör. Pazartesi kampanyası" aria-label="Oda adı"><button type="button" class="btn primary" id="stCreateGo">Kur</button></div></div>
+        <button type="button" class="st-big" id="stJoinBtn">Odaya katıl<small>GM'nin verdiği kodla gir</small></button>
+        <div class="st-sub2" id="stJoin" hidden><div class="row"><input id="stCode" maxlength="9" placeholder="NC-XXXXXX" aria-label="Oda kodu" autocomplete="off" autocapitalize="characters"><button type="button" class="btn primary" id="stJoinGo">Katıl</button></div></div>
+      </div>
+      <p id="stMsg" class="st-msg" hidden></p>
+      <h2>Odalarım</h2>
+      <ul id="stRooms" class="st-rooms"><li class="st-empty">Yükleniyor…</li></ul>
+      <button type="button" class="st-link" id="stHelpBtn">Nasıl oynanır?</button>
+      <div id="stHelp" class="st-help" hidden>
+        <p><b>GM:</b> "Oda kur"a bas, kodu ya da linki oyunculara gönder. Masada harita üretir, NPC koyar, müziği ve kuralları yönetirsin. Kaydet butonu kampanyayı anlık görüntü olarak saklar.</p>
+        <p><b>Oyuncu:</b> "Odaya katıl"a kodu yaz. Karakter sekmesinden karakterini oluştur, tokenini haritaya koy; sağ tık (telefonda basılı tut) aksiyon menüsünü açar.</p>
+        <p>Aynı tarayıcıda kimliğin hatırlanır. GM olarak başka cihazdan da devam etmek istiyorsan Google ile bağla.</p>
+      </div>
+    </div>
+    <div class="st-panel" id="stLobby" hidden>
+      <h2>Lobi</h2>
+      <div><b id="lbName" style="font: 700 26px/1.1 var(--disp); text-transform: uppercase"></b></div>
+      <span id="lbRole" class="st-role"></span>
+      <div class="st-field"><label>Oda kodu</label><div class="st-codebig" id="lbCode"></div></div>
+      <div class="row" style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn sm" data-copy="code">Kodu kopyala</button><button type="button" class="btn sm" data-copy="link">Davet linkini kopyala</button></div>
+      <p class="st-help" id="lbHint"></p>
+      <h2>Bağlı olanlar</h2>
+      <ul id="lbPeers" class="st-peers"></ul>
+      <div class="st-btns"><button type="button" class="st-big pri" id="lbEnter">Masaya gir<small>Harita, karakterler ve zarlar</small></button><button type="button" class="st-link" id="lbBack">← Ana menü</button></div>
+    </div>
+  </div>
+</div>

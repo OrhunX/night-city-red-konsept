@@ -1,0 +1,31 @@
+rules_version = '2';
+// Night City Masası: her oda rooms/<KOD> altında. Odayı kuran GM'dir (gms listesi).
+// GM'ye özel koleksiyonlar: gizli tokenler, NPC sayfaları, gizli DV'ler, kayıtlar, gizli zarlar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function roomData(code) { return get(/databases/$(database)/documents/rooms/$(code)).data; }
+    function isGM(code) { return signedIn() && request.auth.uid in roomData(code).gms; }
+    function gmOnly(col) { return col in ['hidden', 'npcs', 'gmsecret', 'saves', 'savep', 'secret']; }
+
+    match /rooms/{code} {
+      allow get, list: if signedIn();
+      allow create: if signedIn() && request.resource.data.gms == [request.auth.uid];
+      allow update, delete: if isGM(code);
+
+      // herkes kendi üyelik kaydını yazar
+      match /members/{uid} {
+        allow read: if signedIn();
+        allow write: if signedIn() && request.auth.uid == uid;
+      }
+      // gizli zarlar: atan oyuncu kendininkini, GM hepsini görür
+      match /secret/{uid} {
+        allow read, write: if isGM(code) || (signedIn() && request.auth.uid == uid);
+      }
+      match /{col}/{doc} {
+        allow read: if signedIn() && (!gmOnly(col) || isGM(code));
+        allow write: if signedIn() && ((!gmOnly(col) && col != 'gm' && col != 'members') || isGM(code));
+      }
+    }
+  }
+}
