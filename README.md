@@ -131,7 +131,8 @@ Tokene sağ tıklayınca, karakter sayfasına göre hazırlanmış bir aksiyon m
 ### Sohbet, odalar ve karakter klasörü
 - **Sohbet** sekmesi: mesajlar, `/k` karakter ağzından, `/me`, `/r 2d6+3` zar, fısıltılar. Zarlar ve oyun olayları da akışa düşer; gizli zarlar gizli kalır.
 - Sadece odayı kuran GM'dir. Aynı tarayıcıda ayrı sekmede oyuncu olarak da katılabilirsin. GM masayı kodunu yazarak kalıcı olarak silebilir; bağlı oyuncular menüye döner.
-- Lobide **karakter klasörü**: rol şablonu, boş sayfa ya da yaşam yolu zarıyla karakter yarat, portre ekle, masaya getir, çoğalt, JSON olarak al/ver. Google ile bağlanınca klasör cihazlar arasında taşınır.
+- **Karakter oluşturma sihirbazı** (lobide ve masada aynı): *Kolay* yolda rolü seçersin, statlar kitaptaki rol tablosundan 1d10 ile atılır, beceriler ve ekipman Streetrat şablonundan gelir. *Adım adım* yolda rol → 62 stat puanı → 86 beceri puanı → 2550eb ekipman → yaşam yolu → kimlik → özet; kurala uymayan adımda ilerlenmez, yarım kalan taslak saklanır. Oyuncunun karakteri bitince GM onayına gider.
+- Lobide **karakter klasörü**: karakterleri sakla, masaya getir, çoğalt, JSON olarak al/ver. Google ile bağlanınca klasör cihazlar arasında taşınır.
 
 ### Hacklenebilir sistemler (NET)
 - Haritalara erişim noktası, güvenlik kamerası, güvenlik kapısı ve otomatik taret yerleştirilir. Harita üreticisi bunları kendisi koyar; GM elle de ekleyebilir.
@@ -231,6 +232,7 @@ src/
   roles2.js           Rockerboy, Media, Fixer, Exec
   chat.js turns.js    sohbet, sıra kuralları, kilit ve geçmiş
   ip.js folder.js     gelişim puanı, karakter klasörü
+  wizard.js           adım adım karakter oluşturma
   audio.js music.js   ses efektleri, sentez müzik, MP3 listesi
   save.js             kampanya kaydı
   ui.js               sekmeler, sayfalar, başlatma

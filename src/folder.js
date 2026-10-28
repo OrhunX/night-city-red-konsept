@@ -38,7 +38,7 @@ async function folderBring(fid) {
   const c = clone(f.c); const npc = c.kind === 'npc';
   if (npc && !isRoomGM()) { fMsg('NPC\'leri sadece GM masaya getirebilir.', 'err'); return; }
   try { const q = await rdb.collection(npc ? 'npcs' : 'chars').where('src', '==', fid).get(); const mine = q.docs.filter(d => d.data().owner === FB.uid); if (mine.length) { fMsg((c.handle || 'Karakter') + ' zaten bu masada.'); queuePlace(mine[0].id); return; } } catch (e) { }
-  c.owner = FB.uid; c.src = fid; c.ts = Date.now(); c.locked = false; c.pending = false;
+  c.owner = FB.uid; c.src = fid; c.ts = Date.now(); c.locked = false; c.pending = !npc && !isRoomGM();
   if (npc) c.hidden = true;
   const id = (npc ? 'n_' : 'c_') + uid();
   try { await rdb.doc((npc ? 'npcs/' : 'chars/') + id).set(c); } catch (e) { fMsg('Masaya getirilemedi: ' + (e.code || e.message), 'err'); return; }
@@ -103,19 +103,17 @@ const FOLDER_FORM = '<form class="fnew" hidden>'
   + '<div class="row"><button type="submit" class="btn primary" data-fgo="bring">Oluştur ve masaya getir</button><button type="submit" class="btn" data-fgo="save">Sadece klasöre kaydet</button></div></form>';
 function folderPanelHTML() {
   return '<div class="folder"><div class="row fl-act"><button type="button" class="btn sm primary" data-fnew>Yeni karakter</button><button type="button" class="btn sm" data-fimp>Dosyadan yükle</button><input type="file" class="fimp-in" accept=".json,application/json" hidden></div>'
-    + FOLDER_FORM + '<p class="folder-msg st-msg" hidden></p><ul class="folder-list"></ul></div>';
+    + '<p class="folder-msg st-msg" hidden></p><ul class="folder-list"></ul></div>';
 }
 function mountFolder(host) {
   if (!host || host.querySelector('.folder')) return;
   host.innerHTML = folderPanelHTML();
-  const sel = host.querySelector('select[name="role"]'); sel.innerHTML = ROLES.map(r => '<option value="' + esc(r.k) + '">' + esc(r.k) + ' · ' + esc(r.a) + '</option>').join('');
-  host.querySelector('.fn-npc').hidden = !isRoomGM();
   renderFolder();
 }
 document.addEventListener('click', async e => {
   const t = e.target.closest('[data-fnew],[data-fimp],[data-fbring],[data-fdup],[data-fdl],[data-fdel],[data-fopen],[data-fclose],[data-fsync]'); if (!t) return;
   const host = t.closest('.folder');
-  if (t.hasAttribute('data-fnew')) { const f = host.querySelector('.fnew'); f.hidden = !f.hidden; if (!f.hidden) f.querySelector('[name="handle"]').focus(); return; }
+  if (t.hasAttribute('data-fnew')) { openWizard('folder'); return; }
   if (t.hasAttribute('data-fimp')) { host.querySelector('.fimp-in').click(); return; }
   if (t.dataset.fbring) { t.disabled = true; await folderBring(t.dataset.fbring); t.disabled = false; return; }
   if (t.dataset.fdup) { const f = FOLDER.list.find(x => x.id === t.dataset.fdup); if (f) { const c = clone(f.c); c.handle = (c.handle || 'Karakter') + ' (kopya)'; await folderSave(c); } return; }

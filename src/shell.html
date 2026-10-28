@@ -188,7 +188,7 @@ textarea { width: 100%; resize: vertical; }
 .r-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
 
 /* karakter listesi */
-.newrow { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 6px; }
+.newrow { display: flex; gap: 6px; flex-wrap: wrap; } .newrow .btn.primary { flex: 1 1 160px; }
 .clist { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
 .clist .empty { grid-column: 1 / -1; }
 .cchip { text-align: left; background: var(--raise); border: 1px solid var(--line); padding: 8px 9px 7px; cursor: pointer; display: grid; gap: 2px; min-width: 0; }
@@ -683,6 +683,104 @@ label.mini input { width: 56px; min-height: 28px; }
 .reqform h4 { color: var(--acc); }
 .reqform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
 .reqform .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+/* ---- karakter oluşturma sihirbazı ---- */
+.wiz { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: grid; grid-template-rows: auto 1fr auto; color: var(--fg); }
+.wz-top { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 16px; align-items: center; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--panel); }
+.wz-title { font: 700 20px/1 var(--disp); letter-spacing: .04em; text-transform: uppercase; }
+.wz-top .x { background: none; border: 1px solid var(--line2); color: var(--fg); width: 34px; height: 34px; font-size: 20px; cursor: pointer; }
+.wz-prog { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.wz-prog button { display: flex; align-items: center; gap: 6px; background: none; border: 0; border-bottom: 2px solid var(--line); color: var(--dim); padding: 6px 8px; cursor: pointer; white-space: nowrap; font: 600 12px/1 var(--body); text-transform: uppercase; letter-spacing: .05em; }
+.wz-prog button span { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid currentColor; font: 600 10px/1 var(--mono); }
+.wz-prog .done button { color: var(--muted); border-color: var(--muted); }
+.wz-prog .cur button { color: var(--acc); border-color: var(--acc); }
+.wz-body { overflow-y: auto; }
+.wz-in { max-width: 920px; margin: 0 auto; padding: 24px 16px 40px; }
+.wz-in h2 { font: 700 34px/1 var(--disp); text-transform: uppercase; letter-spacing: .02em; margin: 0 0 6px; }
+.wz-in h3 { font: 600 12px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 8px; }
+.wz-lead { color: var(--muted); margin: 0 0 18px; max-width: 64ch; }
+.wz-foot { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 10px max(16px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); border-top: 1px solid var(--line); background: var(--panel); }
+.wz-err { flex: 1; color: var(--hot); font-weight: 600; min-width: 0; }
+.wz-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.wz-mode { text-align: left; display: grid; gap: 8px; padding: 18px; background: var(--panel); border: 1px solid var(--line2); color: var(--fg); cursor: pointer; }
+.wz-mode:hover, .wz-mode:focus-visible { border-color: var(--acc); }
+.wz-mode b { font: 700 24px/1 var(--disp); text-transform: uppercase; }
+.wz-mode span { color: var(--muted); }
+.wz-mode i { font-style: normal; color: var(--acc); font: 600 11px/1 var(--mono); text-transform: uppercase; }
+.wz-draft { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border: 1px dashed var(--acc); margin-bottom: 14px; }
+.wz-draft span { flex: 1 1 200px; }
+.wz-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.wz-role { text-align: left; display: grid; gap: 4px; padding: 12px; background: var(--panel); border: 1px solid var(--line2); color: var(--fg); cursor: pointer; }
+.wz-role b { font: 700 22px/1 var(--disp); text-transform: uppercase; }
+.wz-role small { color: var(--acc); font-weight: 600; }
+.wz-role span { color: var(--muted); font-size: 13px; }
+.wz-role em { font-style: normal; font: 500 11px/1 var(--mono); color: var(--dim); }
+.wz-role.on, .wz-role:hover { border-color: var(--acc); }
+.wz-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; }
+.wz-pool { font: 500 13px/1 var(--mono); padding: 8px 10px; border: 1px solid var(--line2); }
+.wz-pool b { font-size: 16px; }
+.wz-pool.ok { border-color: var(--ok); color: var(--ok); }
+.wz-pool.bad { border-color: var(--hot); color: var(--hot); }
+.wz-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.wz-st { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); }
+.wz-st.key { border-left: 3px solid var(--acc); }
+.wz-st b { font: 700 18px/1 var(--disp); letter-spacing: .04em; }
+.wz-st small { display: block; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wz-st > div:first-child { min-width: 0; }
+.wz-stats.ro .wz-st output { font: 600 18px/1 var(--mono); }
+.wz-step { display: inline-flex; align-items: center; border: 1px solid var(--line2); }
+.wz-step button { width: 32px; height: 32px; background: var(--raise); border: 0; color: var(--fg); font-size: 18px; cursor: pointer; }
+.wz-step button:disabled { opacity: .3; cursor: default; }
+.wz-step output { min-width: 30px; text-align: center; font: 600 15px/1 var(--mono); }
+.wz-derived { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 16px 0; color: var(--muted); }
+.wz-derived b { color: var(--fg); font-family: var(--mono); }
+.wz-sk { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; }
+.wz-sk li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; background: var(--panel); border: 1px solid var(--line); }
+.wz-sk li.has { border-color: var(--line2); }
+.wz-sk li.rec { border-left: 3px solid var(--acc); }
+.wz-skn { min-width: 0; }
+.wz-skn i { font-style: normal; color: var(--hot); font: 600 10px/1 var(--mono); }
+.wz-skn small { display: block; color: var(--dim); font-size: 11px; }
+.wz-gear { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wz-gear li { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 6px 6px 6px 10px; background: var(--panel); border: 1px solid var(--line); }
+.wz-gear li.has { border-color: var(--acc); }
+.wz-gear small, .wz-armor small { display: block; color: var(--dim); font-size: 11px; }
+.wz-gear em, .wz-armor em { font-style: normal; font: 500 12px/1 var(--mono); color: var(--muted); }
+.wz-armor { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.wz-armor label { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 2px 8px; align-items: center; padding: 10px; background: var(--panel); border: 1px solid var(--line); cursor: pointer; }
+.wz-armor label small { grid-column: 2; }
+.wz-armor label em { grid-row: 1; grid-column: 3; }
+.wz-armor label.on { border-color: var(--acc); }
+.wz-life { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.wz-life label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.wz-lrow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; }
+.wz-lrow select { min-width: 0; text-transform: none; letter-spacing: 0; }
+.wz-who { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 20px; align-items: start; }
+.wz-portrait { cursor: pointer; }
+.wz-ph { display: grid; place-items: center; width: 180px; aspect-ratio: 1; border: 1px dashed var(--line2); background: var(--panel); color: var(--muted); overflow: hidden; }
+.wz-ph img { width: 100%; height: 100%; object-fit: cover; }
+.wz-ph.sm { width: 64px; font: 700 28px/1 var(--disp); }
+.wz-fields { display: grid; gap: 10px; }
+.wz-fields label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.wz-fields input, .wz-fields textarea, .wz-lrow select { background: var(--raise); border: 1px solid var(--line2); padding: 9px 10px; color: var(--fg); text-transform: none; letter-spacing: 0; font-size: 14px; }
+.wz-fields .linkbtn { justify-self: start; }
+.wz-sum { display: grid; gap: 12px; }
+.wz-sumh { display: flex; gap: 12px; align-items: center; }
+.wz-sumh b { font: 700 28px/1 var(--disp); text-transform: uppercase; }
+.wz-sumh small { display: block; color: var(--muted); }
+.wz-sum p { margin: 0; color: var(--muted); }
+.wz-sum p b { color: var(--fg); }
+.wz-fin { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+@media (max-width: 640px) {
+  .wz-top { grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+  .wz-prog { grid-column: 1 / -1; grid-row: 2; }
+  .wz-title { font-size: 17px; }
+  .wz-in h2 { font-size: 28px; }
+  .wz-who { grid-template-columns: 1fr; }
+  .wz-ph { width: 140px; }
+  .wz-gear li { grid-template-columns: minmax(0,1fr) auto; }
+  .wz-gear li em { grid-row: 2; }
+}
 </style>
 
 <div id="app">
@@ -812,7 +910,7 @@ label.mini input { width: 56px; min-height: 28px; }
         <div class="ch-in"><select id="chatTo" aria-label="Kime" hidden></select><input id="chatIn" maxlength="600" autocomplete="off" placeholder="Mesaj yaz… (/r 2d6 zar, /k karakter ağzından, /me eylem)" aria-label="Mesaj"><button class="btn primary" id="chatGo">Gönder</button></div>
       </section>
       <section class="tabpanel" id="tab-chars" hidden>
-        <div class="newrow"><select id="newRole" aria-label="Rol"></select><button class="btn primary" data-act="newRandom">Rastgele karakter</button><button class="btn" data-act="newBlank">Boş sayfa</button></div>
+        <div class="newrow"><button class="btn primary" data-wiz="table">Karakter oluştur</button><select id="newRole" aria-label="Rol" hidden></select></div>
         <div id="charList" class="clist"></div>
         <div id="sheet"></div>
       </section>
@@ -824,7 +922,7 @@ label.mini input { width: 56px; min-height: 28px; }
           <label>Adet<input id="npcCount" type="number" min="1" max="8" value="3"></label>
           <button class="btn primary" data-act="genNpc">NPC üret</button>
         </div>
-        <div class="row"><button class="linkbtn" data-act="npcAllToMap">Haritada olmayan tüm NPC'leri yerleştir</button></div>
+        <div class="row"><button class="linkbtn" data-wiz="npc">Elle NPC oluştur (adım adım)</button><button class="linkbtn" data-act="npcAllToMap">Haritada olmayan tüm NPC'leri yerleştir</button></div>
         <div id="npcList" class="clist"></div>
         <div id="npcSheet"></div>
       </section>
