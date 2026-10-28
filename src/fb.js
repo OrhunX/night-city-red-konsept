@@ -193,7 +193,7 @@ window.renderLobby = function () {
 };
 let booted = false;
 function enterTable() {
-  $s('#startScr').hidden = true; document.body.classList.add('in-room');
+  $s('#startScr').hidden = true; document.body.classList.add('in-room'); stopMenuVideo();
   if (!booted) { booted = true; boot().then(() => { renderRoomChip(); }); }
 }
 function renderRoomChip() {
@@ -238,4 +238,51 @@ async function googleLink() {
     else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') startMsg('Google bağlanamadı: ' + (e.code || e.message), 'err');
   }
 }
+
+// ===== AÇILIŞ ANİMASYONU + ARKA PLAN FRAGMANI =====
+const INTRO = { ready: false, timers: [] };
+function introLater(fn, ms) { INTRO.timers.push(setTimeout(fn, ms)); }
+function runIntro() {
+  const boot = $s('#inBoot'), stage = $s('#inStage'); if (!stage) return;
+  const lines = ['> NCM // night city masası', '> NET bağlantısı kuruluyor…', '> oda sunucusu: firebase ✓', '> zar çekirdeği: fizik simülasyonu ✓', '> netrunner arayüzü: hazır ✓', '> chooh2 seviyesi: yeterli', '> hoş geldin, choom.'];
+  lines.forEach((l, i) => introLater(() => { boot.textContent += l + '\n'; }, 150 + i * 230));
+  const faces = ['2', '0', '7', '7']; const n = faces.length; const W = Math.min(stage.clientWidth, 760); const gap = Math.min(W / (n + 0.5), 120);
+  faces.forEach((v, i) => {
+    const d = document.createElement('div'); d.className = 'die';
+    const x1 = (i - (n - 1) / 2) * gap; const from = (i % 2 ? 1 : -1) * (W * 0.7 + Math.random() * 120);
+    d.style.setProperty('--x0', from + 'px'); d.style.setProperty('--x1', x1 + 'px');
+    d.style.setProperty('--rx', (360 * (1 + (i % 2))) + 'deg'); d.style.setProperty('--ry', (360 * (2 - (i % 2))) + 'deg');
+    d.style.marginLeft = '-' + (stage.clientWidth < 560 ? 27 : 38) + 'px';
+    d.style.animationDelay = (0.9 + i * 0.16) + 's';
+    const others = ['1', '3', '4', '5', '6', '8', '9'];
+    d.innerHTML = '<div class="f f1">' + v + '</div>' + [2, 3, 4, 5, 6].map(k => '<div class="f f' + k + '">' + others[(i * 3 + k) % others.length] + '</div>').join('');
+    stage.appendChild(d);
+    introLater(() => d.classList.add('land'), (0.9 + i * 0.16 + 1.9) * 1000);
+  });
+  introLater(() => $s('#inBurst').classList.add('go'), 3300);
+  introLater(() => $s('#inLogo').classList.add('show'), 3500);
+  introLater(introReady, 4400);
+}
+function introReady() { if (INTRO.ready) return; INTRO.ready = true; $s('#inGo').classList.add('show'); $s('#inLogo').classList.add('show'); $s('#inBtn').focus({ preventScroll: true }); }
+function introSkipAnim() { INTRO.timers.forEach(clearTimeout); INTRO.timers = []; document.querySelectorAll('.die').forEach(d => { d.style.animationDuration = '0.01s'; d.style.animationDelay = '0s'; }); $s('#inBoot').textContent = '> hoş geldin, choom.\n'; introReady(); }
+function vidMuted() { return !!LS.get('vidMute', false); }
+function renderMute() { const b = $s('#stMute'); if (!b) return; const m = $s('#stVideo').muted; b.textContent = m ? '🔇 Ses kapalı' : '🔊 Ses açık'; b.setAttribute('aria-pressed', m ? 'true' : 'false'); }
+function introEnter(silent) {
+  const v = $s('#stVideo'); const intro = $s('#intro');
+  INTRO.timers.forEach(clearTimeout); intro.classList.add('out'); setTimeout(() => { intro.hidden = true; }, 900);
+  if (silent) LS.set('vidMute', true);
+  v.muted = silent || vidMuted(); v.volume = 0.85;
+  v.classList.add('on'); const p = v.play(); if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => { }); renderMute(); });
+  renderMute();
+  setTimeout(() => { const n = $s('#stName'); if (n && !n.value) n.focus({ preventScroll: true }); }, 950);
+}
+function stopMenuVideo() { const v = $s('#stVideo'); if (!v) return; v.pause(); v.classList.remove('on'); v.removeAttribute('src'); v.load(); }
+document.addEventListener('click', e => {
+  if (e.target.id === 'inBtn') { introEnter(false); return; }
+  if (e.target.id === 'inSkip') { introEnter(true); return; }
+  if (e.target.id === 'stMute') { const v = $s('#stVideo'); v.muted = !v.muted; LS.set('vidMute', v.muted); if (!v.muted && v.paused) v.play().catch(() => { }); renderMute(); return; }
+  if (e.target.closest && e.target.closest('#intro') && !INTRO.ready) introSkipAnim();
+});
+document.addEventListener('keydown', e => { const intro = $s('#intro'); if (!intro || intro.hidden || intro.classList.contains('out')) return; if (!INTRO.ready && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { e.preventDefault(); introSkipAnim(); } });
+runIntro();
 fbInit();

@@ -53,8 +53,74 @@
 .roomchip button { background: var(--raise); border: 1px solid var(--line2); color: var(--fg); padding: 4px 8px; cursor: pointer; font: 600 12px var(--mono); }
 .roomchip .rc-code { color: var(--acc); letter-spacing: .06em; }
 @media (max-width: 720px) { .roomchip .rc-n { display: none; } }
+
+/* arka plan videosu */
+.st-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; background: #000; opacity: 0; transition: opacity 1.2s ease; }
+.st-video.on { opacity: 1; }
+.st-shade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(8,10,12,.82) 0%, rgba(8,10,12,.45) 45%, rgba(8,10,12,.72) 100%),
+  repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); }
+.startscr > .st-wrap { position: relative; z-index: 2; }
+.st-mute { position: fixed; z-index: 3; right: max(16px, env(safe-area-inset-right, 0px)); top: max(16px, env(safe-area-inset-top, 0px)); display: inline-flex; align-items: center; gap: 6px; background: rgba(18,22,26,.8); border: 1px solid var(--line2); color: var(--fg); padding: 8px 12px; cursor: pointer; font: 600 12px var(--mono); letter-spacing: .06em; min-height: 36px; }
+.st-mute:hover { border-color: var(--acc); }
+.st-panel { background: rgba(14,18,22,.86); backdrop-filter: blur(6px); }
+/* açılış animasyonu */
+.intro { position: fixed; inset: 0; z-index: 300; background: radial-gradient(900px 500px at 50% 60%, #0f1d1a 0%, #050708 70%); display: grid; place-items: center; overflow: hidden; transition: opacity .8s ease, visibility .8s; }
+.intro.out { opacity: 0; visibility: hidden; }
+.intro::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(123,216,143,.05) 0 1px, transparent 1px 3px); pointer-events: none; }
+.in-grid { position: absolute; left: 50%; bottom: -10%; width: 220vmax; height: 70vh; transform: translateX(-50%) perspective(600px) rotateX(62deg); transform-origin: 50% 100%;
+  background-image: linear-gradient(rgba(65,207,214,.35) 1px, transparent 1px), linear-gradient(90deg, rgba(65,207,214,.35) 1px, transparent 1px); background-size: 60px 60px; animation: inGrid 6s linear infinite; mask-image: linear-gradient(to top, #000 10%, transparent 90%); -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 90%); }
+@keyframes inGrid { to { background-position: 0 60px; } }
+.in-boot { position: absolute; left: max(20px, 4vw); top: max(20px, 4vh); font: 500 clamp(11px, 1.4vw, 14px)/1.7 var(--mono); color: #7bd88f; text-shadow: 0 0 8px rgba(123,216,143,.6); white-space: pre; opacity: .9; }
+.in-stage { position: relative; width: min(760px, 92vw); height: min(300px, 40vh); perspective: 900px; }
+.die { position: absolute; top: 74%; left: 50%; width: 76px; height: 76px; margin-top: -38px; transform-style: preserve-3d; animation: dieRoll 1.9s cubic-bezier(.2,.75,.25,1) both; }
+.die .f { position: absolute; inset: 0; display: grid; place-items: center; font: 800 38px/1 var(--disp); color: #eaffd8; background: radial-gradient(circle at 30% 25%, #2dd47e 0%, #0b8a52 55%, #054d2d 100%); border: 1px solid rgba(190,255,200,.55); box-shadow: inset 0 0 18px rgba(0,0,0,.45), 0 0 24px rgba(45,212,126,.35); border-radius: 10px; text-shadow: 0 0 10px rgba(220,255,160,.9); backface-visibility: hidden; }
+.die .f::after { content: ""; position: absolute; inset: 7px; border-radius: 6px; background: linear-gradient(135deg, transparent 46%, rgba(220,255,180,.18) 47% 49%, transparent 50%) 0 0/14px 14px; opacity: .6; }
+.f1 { transform: translateZ(38px); } .f2 { transform: rotateY(180deg) translateZ(38px); } .f3 { transform: rotateY(90deg) translateZ(38px); }
+.f4 { transform: rotateY(-90deg) translateZ(38px); } .f5 { transform: rotateX(90deg) translateZ(38px); } .f6 { transform: rotateX(-90deg) translateZ(38px); }
+@keyframes dieRoll {
+  0% { transform: translate3d(var(--x0), -260px, -200px) rotateX(0) rotateY(0) rotateZ(0); opacity: 0; }
+  12% { opacity: 1; }
+  45% { transform: translate3d(calc(var(--x1) * .7), 30px, 0) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(180deg); }
+  62% { transform: translate3d(calc(var(--x1) * .9), -40px, 0) rotateX(calc(var(--rx) + 200deg)) rotateY(calc(var(--ry) + 120deg)) rotateZ(300deg); }
+  80% { transform: translate3d(var(--x1), 6px, 0) rotateX(calc(var(--rx) + 330deg)) rotateY(calc(var(--ry) + 300deg)) rotateZ(355deg); }
+  100% { transform: translate3d(var(--x1), 0, 0) rotateX(calc(var(--rx) + 360deg)) rotateY(calc(var(--ry) + 360deg)) rotateZ(360deg); }
+}
+.die.land .f1 { animation: faceGlow 1.2s ease 1; }
+@keyframes faceGlow { 0% { box-shadow: inset 0 0 18px rgba(0,0,0,.45), 0 0 24px rgba(45,212,126,.35); } 30% { box-shadow: inset 0 0 18px rgba(0,0,0,.2), 0 0 70px rgba(220,255,120,.95); } 100% { box-shadow: inset 0 0 18px rgba(0,0,0,.45), 0 0 30px rgba(45,212,126,.5); } }
+.in-burst { position: absolute; left: 50%; top: 74%; width: 10px; height: 10px; margin: -5px; border-radius: 50%; box-shadow: 0 0 0 0 rgba(220,255,120,.0); opacity: 0; }
+.in-burst.go { animation: burst .9s ease-out 1; }
+@keyframes burst { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(220,255,120,.8); } 100% { opacity: 0; box-shadow: 0 0 0 220px rgba(220,255,120,0); } }
+.in-logo { position: absolute; left: 0; right: 0; top: 28%; transform: translateY(-50%); text-align: center; opacity: 0; pointer-events: none; }
+.in-logo.show { animation: logoIn 1.1s steps(1) forwards, logoFade .6s ease forwards; }
+.in-logo h2 { margin: 0; font: 800 clamp(48px, 10vw, 120px)/.85 var(--disp); letter-spacing: .02em; text-transform: uppercase; color: #e7e3d8; text-shadow: 3px 0 #ff4a5f, -3px 0 #41cfd6; }
+.in-logo h2 span { color: var(--acc); }
+.in-logo p { margin: 10px 0 0; font: 600 clamp(11px, 1.6vw, 14px) var(--mono); letter-spacing: .3em; color: var(--cool); text-transform: uppercase; }
+@keyframes logoIn { 0% { clip-path: inset(0 0 100% 0); } 15% { clip-path: inset(40% 0 35% 0); transform: translate(-6px, -50%); } 30% { clip-path: inset(0 0 60% 0); transform: translate(5px, -50%); } 45% { clip-path: inset(70% 0 0 0); } 60% { clip-path: inset(0 0 0 0); transform: translate(-2px, -50%); } 100% { clip-path: inset(0); transform: translateY(-50%); } }
+@keyframes logoFade { to { opacity: 1; } }
+.in-go { position: absolute; left: 50%; bottom: max(28px, 9vh); transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity .6s ease; display: grid; justify-items: center; gap: 10px; }
+.in-go.show { opacity: 1; pointer-events: auto; }
+.in-btn { font: 800 clamp(20px, 2.6vw, 28px)/1 var(--disp); letter-spacing: .14em; text-transform: uppercase; padding: 16px 44px; background: var(--acc); color: var(--acc-ink); border: 0; cursor: pointer; clip-path: polygon(0 0, 100% 0, 100% 70%, 92% 100%, 0 100%); box-shadow: 0 0 40px rgba(242,194,48,.35); animation: btnPulse 1.8s ease-in-out infinite; }
+.in-btn:hover, .in-btn:focus-visible { filter: brightness(1.1); }
+@keyframes btnPulse { 50% { box-shadow: 0 0 70px rgba(242,194,48,.6); } }
+.in-go small { font: 500 12px var(--mono); color: var(--muted); letter-spacing: .08em; }
+.in-skip { position: absolute; right: max(16px, 3vw); bottom: max(16px, 3vh); background: none; border: 1px solid var(--line2); color: var(--muted); font: 600 11px var(--mono); padding: 6px 10px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .die { animation-duration: .01s; } .in-grid { animation: none; } .in-logo.show { animation: logoFade .3s forwards; } .in-btn { animation: none; } }
+@media (max-width: 560px) { .die { width: 54px; height: 54px; margin-top: -27px; } .die .f { font-size: 28px; } .f1 { transform: translateZ(27px); } .f2 { transform: rotateY(180deg) translateZ(27px); } .f3 { transform: rotateY(90deg) translateZ(27px); } .f4 { transform: rotateY(-90deg) translateZ(27px); } .f5 { transform: rotateX(90deg) translateZ(27px); } .f6 { transform: rotateX(-90deg) translateZ(27px); } }
 </style>
+<div id="intro" class="intro" role="dialog" aria-label="Açılış">
+  <div class="in-grid"></div>
+  <div class="in-boot" id="inBoot" aria-hidden="true"></div>
+  <div class="in-stage" id="inStage"><div class="in-burst" id="inBurst"></div>
+    <div class="in-logo" id="inLogo" lang="en"><h2>Night <span>City</span></h2><p>Cyberpunk RED · dijital masa</p></div>
+  </div>
+  <div class="in-go" id="inGo"><button type="button" class="in-btn" id="inBtn">Bağlan</button><small>Ses ve fragmanla birlikte açılır</small></div>
+  <button type="button" class="in-skip" id="inSkip">Sessiz gir</button>
+</div>
 <div id="startScr" class="startscr">
+  <video id="stVideo" class="st-video" src="media/intro.mp4" poster="media/intro.jpg" playsinline loop preload="auto"></video>
+  <div class="st-shade"></div>
+  <button type="button" class="st-mute" id="stMute" aria-pressed="false" title="Fragman sesini aç/kapat">🔊 Ses açık</button>
   <div class="st-wrap">
     <div class="st-brand">
       <span class="mark">NC</span>
