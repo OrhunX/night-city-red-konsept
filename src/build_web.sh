@@ -12,8 +12,9 @@ N=$(grep -n '^</style>' shell.html | head -1 | cut -d: -f1)
   sed '/^if (typeof module/d' gen.js
   cat data.js rules.js injuries.js core.js audio.js
   sed '/^if (typeof module/d' mp4wrap.js
-  cat dice3d.js map.js fx.js actions.js net.js roles.js save.js music.js
+  cat dice3d.js map.js fx.js actions.js net.js roles.js roles2.js save.js music.js chat.js turns.js ip.js
   sed '/^boot();$/d' ui.js
+  cat folder.js
   cat fb.js
   printf '\n</script>\n</body>\n</html>\n'
 } > ../index.html

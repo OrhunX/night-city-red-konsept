@@ -139,6 +139,7 @@ document.addEventListener('click', e => {
 function roleMenuHTML(actor, target, c, it) {
   const r = roleOf(c), rk = rankOf(c), a = S.tokens[actor];
   if (!r || !rk) return '';
+  if (['Rockerboy', 'Media', 'Fixer', 'Exec'].indexOf(r) >= 0) return role2MenuHTML(actor, target, c, it);
   let h = '';
   if (r === 'Solo') {
     const ca = caOf(c);
@@ -146,14 +147,17 @@ function roleMenuHTML(actor, target, c, it) {
   } else if (r === 'Netrunner') {
     const L = naLeft(actor); const tk = a;
     h += '<p class="hint">' + (L.free ? 'İnisiyatif kapalı: NET aksiyonu sınırsız.' : 'Bu tur NET aksiyonu: ' + L.left + '/' + L.mx) + (tk.net ? ' · Bağlı' + (tk.net.pw ? '' : ' (şifre önünde)') : '') + '</p>';
-    if (!tk.net) { const aps = apInRange(actor); h += aps.length ? it('netin', 'Jack In', 'Yakındaki erişim noktasına bağlan · 1 NET aksiyonu') : it('netscan', 'Scanner', 'Interface + d10 · gizli sistemleri bul (Meat Action)'); }
+    if (!tk.net) { const aps = apInRange(actor); h += aps.length ? it('netin', 'Jack In', 'Yakındaki erişim noktasına bağlan · 1 NET aksiyonu') : '<p class="hint">Jack In için bir erişim noktasının 6 m yakınına git (haritada anten simgesi).</p>'; h += it('netscan', 'Scanner', 'Interface + d10 · gizli sistemleri ve erişim noktalarını bul (Meat Action)'); h += it('zap', 'Zap', 'Önce Jack In yapmalısın; Zap NET içinde kullanılır.', ' disabled'); }
     else {
       if (!tk.net.pw) h += it('netbd', 'Backdoor', 'Interface + d10 vs şifre DV' + netPw());
       const held = devList().filter(d => devSt(d.id).ctl === actor);
       held.forEach(d => { h += '<div class="am-row">' + opsMenu(d) + '</div>'; });
       if (tk.net.pw) h += '<p class="hint">Haritadaki bir sisteme tıklayıp "Kontrolü ele geçir" de. ' + devList().filter(d => d.t !== 'ap' && devVis(d) && devSt(d.id).ctl !== actor).length + ' sistem kontrolünde değil.</p>';
       const tt = target && S.tokens[target];
-      if (tt && tt.net && target !== actor) h += it('zap', 'Zap · ' + tt.name, 'Interface + d10 ↔ Interface + d10 · 1d6 doğrudan beyne');
+      const foes = Object.keys(S.tokens).filter(k => k !== actor && S.tokens[k].net && !(S.tokens[k].hidden && !S.me.isGM));
+      if (tt && tt.net && target !== actor) h += it('zap', 'Zap · ' + tt.name, 'Interface + d10 ↔ Interface + d10 · 1d6 doğrudan beyne · 1 NET aksiyonu');
+      else if (foes.length) h += it('zap', 'Zap', foes.length + ' bağlı Netrunner var · hedef seç · 1d6 doğrudan beyne');
+      else h += it('zap', 'Zap', 'Bu mimaride bağlı bir düşman Netrunner yok. Kitaba göre Zap sadece NET içindeki bir Netrunner\'a ya da programa yapılır.', ' disabled');
       h += it('netout', 'Jack Out', 'Bağlantıyı güvenle kes · 1 NET aksiyonu');
     }
   } else if (r === 'Medtech') {
@@ -185,14 +189,18 @@ function opsMenu(d) {
   return '';
 }
 // menüden seçim
+const ACT_PICKS = ['ca', 'backup', 'vehin', 'man13', 'man17', 'netscan', 'sande'];
 function roleMenuPick(k, actor, target, b) {
   const a = S.tokens[actor]; const c = tokChar(a); if (!c) return false;
+  if (role2MenuPick(k, actor, target, b)) return true;
+  if (ACT_PICKS.indexOf(k) >= 0 && turnOn()) { if (k === 'ca' && turnOn() && !S.me.isGM) { if (!gateAct(actor, 'act')) return true; useAct(actor, 'act'); } else if (k !== 'ca') { if (!gateAct(actor, 'act')) return true; useAct(actor, 'act'); } }
+  if (k === 'sande') { if (sandeActive(c)) { toast('Sandevistan zaten etkin.'); return true; } if (c.sandeDay === S.day && c.sandeDay != null) { toast('Sandevistan bir saat dolmadan yeniden etkinleştirilemez.', 'err'); return true; } c.sande = { r: S.init.round || 0, t: Date.now() }; c.sandeDay = S.day || 0; S.why = 'Sandevistan'; saveCharNow(a.charId); playFx({ k: 'scan', b: actor, txt: 'SANDEVISTAN', col: '#41cfd6' }); chatEvent(a.name + ' Sandevistan\'ı etkinleştirdi (inisiyatif +3).'); return true; }
   if (k === 'ca') { openCaPanel(a.charId); return true; }
   if (k === 'netin') { netJackIn(actor); return true; }
   if (k === 'netout') { netJackOut(actor); return true; }
   if (k === 'netbd') { lockRoll(() => netBackdoor(actor)); return true; }
   if (k === 'netscan') { lockRoll(() => netScanner(actor)); return true; }
-  if (k === 'zap') { netZap(actor, target); return true; }
+  if (k === 'zap') { const tt = target && S.tokens[target]; if (tt && tt.net && target !== actor) netZap(actor, target); else startTargeting({ mode: 'zap', actor, max: 1, picks: [], label: 'Zap hedefi: NET\'e bağlı bir Netrunner seç' }); return true; }
   if (k === 'devop') { const id = b.dataset.d, op = b.dataset.op; if (op === 'fire') { const d = devById(id); startTargeting({ mode: 'turret', actor: null, src: { x: d.x, y: d.y }, max: 1, label: 'Taretin hedefini seç', dev: id, by: actor }); } else netOperate(id, op, actor); return true; }
   if (k === 'drug') { runDrug(actor, target || actor, b.dataset.drug); return true; }
   if (k === 'jury') { runAction({ kind: 'jury', actor, targets: [target || actor] }); return true; }
@@ -212,11 +220,12 @@ async function maneuver(tid, dv) {
 // ilaç: zar yok; hedefin sahibi etkiyi uygular
 async function runDrug(actor, target, k) {
   const a = S.tokens[actor], c = tokChar(a), t = S.tokens[target];
+  if (!gateAct(actor, 'act')) return;
   if (!t) return; if (sq(a, t) > 1) { toast('İlaç vermek için yan yana olmalısınız.', 'err'); return; }
   if (c.doses != null && c.doses !== '' && +c.doses <= 0) { toast('İlaç dozun kalmadı.', 'err'); return; }
   if (c.doses != null && c.doses !== '') { c.doses = +c.doses - 1; saveCharNow(a.charId); }
   await docSet('act', 'a' + uid(), { by: S.me.id || 'local', ts: Date.now(), a: actor, aName: a.name, kind: 'drug', drug: k, label: DRUGS[k].n, w: null, tg: { [target]: { n: t.hidden ? 'Bilinmeyen' : t.name, st: 'def' } }, stage: 'def', atk: { total: 0, d: 0 }, dmg: null, body: 0 });
-  playFx({ k: 'heal', a: actor, b: target, txt: DRUGS[k].n.toUpperCase(), col: '#7bd88f' });
+  playFx({ k: 'heal', a: actor, b: target, txt: DRUGS[k].n.toUpperCase(), col: '#7bd88f' }); useAct(actor, 'act');
 }
 function applyDrug(c, k) {
   const day = S.day || 0;
@@ -240,7 +249,8 @@ function renderCaPanel() {
 }
 const ROLE_ACTS = {
   caStep: b => {
-    const id = b.dataset.id, c = S.chars[id]; if (!c || !canEditChar(c)) return; const x = CA.find(y => y.k === b.dataset.k); const a = caOf(c); if (!a) return;
+    const id = b.dataset.id, c = S.chars[id]; if (!c || !canEditChar(c)) return;
+    const tk = S.tokens['t_' + id]; if (tk && turnOn() && !S.me.isGM && !S.caFree) { const [ok, why] = mayAct('t_' + id, 'act'); if (!ok) { toast('Dövüş sırasında Combat Awareness bir Aksiyonla dağıtılır: ' + why, 'err'); return; } } const x = CA.find(y => y.k === b.dataset.k); const a = caOf(c); if (!a) return;
     const nv = a[x.k] + (+b.dataset.v) * x.step; if (nv < 0 || nv > x.max) return; if (+b.dataset.v > 0 && caSum(a) + x.step > rankOf(c)) return;
     a[x.k] = nv; c.ca = a; saveCharNow(id); renderChars(); renderCaPanel();
     const t = S.tokens['t_' + id]; if (t) playFx({ k: 'scan', b: 't_' + id, txt: x.n.split(' ')[0].toUpperCase() + ' ' + nv, col: '#f2c230' }, true);
@@ -251,6 +261,7 @@ const ROLE_ACTS = {
 document.addEventListener('change', e => {
   const t = e.target; if (t.dataset.act !== 'pharma') return;
   const id = t.closest('.sheet').dataset.id, c = S.chars[id]; if (!c || !canEditChar(c)) return;
+  if (sheetLocked(c)) return;
   const set = new Set(pharmaOf(c)); if (t.checked) set.add(t.value); else set.delete(t.value);
   c.pharma = Object.keys(DRUGS).filter(k => set.has(k)); saveCharNow(id);
 });
@@ -265,6 +276,7 @@ function roleBlockHTML(id, c, ed) {
   else if (r === 'Tech') h = '<div class="rb"><b>Maker</b><span>Field Expertise, Tech becerilerine eklenir ve saha tamirine izin verir.</span><div class="rb-row"><label class="mini">Field Expertise <input type="number" min="0" max="10" data-f="fieldExp" value="' + esc(fieldExp(c)) + '"' + ro + '></label></div></div>';
   else if (r === 'Lawman') { const t = backupTier(rankOf(c)); const B = BACKUP[t]; h = '<div class="rb"><b>Backup ' + rankOf(c) + '</b><span>' + esc(B.n) + ' · CN ' + B.cn + ' · SP ' + B.sp + ' · HP ' + B.hp + '. ' + esc(B.d) + '</span></div>'; }
   else if (r === 'Nomad') h = '<div class="rb"><b>Moto ' + rankOf(c) + '</b><span>Sürüş ve araç tamiri becerilerine +' + rankOf(c) + '. Aile araçları: ' + Object.values(VEH).filter(v => v.r <= rankOf(c)).map(v => v.n).join(', ') + '.</span></div>';
-  else return '';
+  else h = role2BlockHTML(id, c, ed);
+  if (!h) return '';
   return '<div class="sec-h"><h4>Rol yeteneği</h4><span class="meta">' + esc(ROLE[r] ? ROLE[r].a : r) + '</span></div>' + h;
 }

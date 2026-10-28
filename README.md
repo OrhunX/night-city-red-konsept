@@ -110,6 +110,28 @@ Tokene sağ tıklayınca, karakter sayfasına göre hazırlanmış bir aksiyon m
 | Tech | Maker | Zırha saha tamiri (kitaptaki tamir DV'leriyle), Field Expertise bonusu |
 | Lawman | Backup | Destek çağrısı; ekip birkaç tur içinde harita kenarında belirir |
 | Nomad | Moto | Aile aracı, manevra, çarpma (6d6 ve Whiplash) |
+| Rockerboy | Charismatic Impact | Hayranları etkileme (DV8 / DV10 / DV12), rütbeye göre iyilik tablosu |
+| Media | Credibility | Söylenti zarı (DV7–13 kademeleri), haber yayınlama ve erişim |
+| Fixer | Operator | Karşılıklı pazarlık zarı, rütbeye göre anlaşmalar ve erişim |
+| Exec | Teamwork | Rütbe avantajları, ekip üyesi (şirket koruması, 1d6 tablo), sadakat ve sadakat zarı |
+
+### Sıra ve GM kontrolü
+- Kitaptaki gibi her tur **1 Hareket + 1 Aksiyon**. Koşmak Aksiyonu kullanır; ROF 2 silahla iki atış tek Aksiyondur; Netrunner ya gerçek dünyada Aksiyon ya da NET aksiyonları kullanır.
+- Oyuncular sadece kendi sıralarında aksiyon alır; savunma gibi tepkiler serbesttir. **Aksiyonu beklet**, **Sırayı bitir**, GM'den **İzin ver** ve tur kuralı aç/kapa.
+- Kerenzikov +2, Sandevistan +3 inisiyatif. Omurga ve kulak yaralanmalarının sonraki tur etkileri otomatik.
+
+### Hile koruması
+- Oyuncu sayfasını bitirip GM'ye gönderir; GM onaylayınca sayfa **kilitlenir**. STAT, beceri, ekipman, rol ve IP alanları oyuncuya kapanır; bu Firestore kurallarıyla da zorlanır.
+- Her değişiklik **Geçmiş** kaydına düşer; kilitli sayfadaki elle düzenlemeler GM'ye uyarı olarak gelir.
+
+### Gelişim puanı (IP)
+- GM oturum sonunda kitaptaki tabloyla (Group, Warrior, Socializer, Explorer, Roleplayer) IP dağıtır.
+- Oyuncu IP harcar: beceri 20 × seviye (zor beceriler 40 ×), rol yeteneği 60 × rütbe, seviye atlanamaz. Kilitli sayfada GM onayı gerekir; istersen otomatik onay.
+
+### Sohbet, odalar ve karakter klasörü
+- **Sohbet** sekmesi: mesajlar, `/k` karakter ağzından, `/me`, `/r 2d6+3` zar, fısıltılar. Zarlar ve oyun olayları da akışa düşer; gizli zarlar gizli kalır.
+- Sadece odayı kuran GM'dir. Aynı tarayıcıda ayrı sekmede oyuncu olarak da katılabilirsin. GM masayı kodunu yazarak kalıcı olarak silebilir; bağlı oyuncular menüye döner.
+- Lobide **karakter klasörü**: rol şablonu, boş sayfa ya da yaşam yolu zarıyla karakter yarat, portre ekle, masaya getir, çoğalt, JSON olarak al/ver. Google ile bağlanınca klasör cihazlar arasında taşınır.
 
 ### Hacklenebilir sistemler (NET)
 - Haritalara erişim noktası, güvenlik kamerası, güvenlik kapısı ve otomatik taret yerleştirilir. Harita üreticisi bunları kendisi koyar; GM elle de ekleyebilir.
@@ -206,6 +228,9 @@ src/
   map.js fx.js        harita çizimi, işaretçi, animasyonlar
   actions.js          aksiyon motoru, savunma kartları, GM istekleri
   net.js roles.js     NET sistemleri, rol yetenekleri
+  roles2.js           Rockerboy, Media, Fixer, Exec
+  chat.js turns.js    sohbet, sıra kuralları, kilit ve geçmiş
+  ip.js folder.js     gelişim puanı, karakter klasörü
   audio.js music.js   ses efektleri, sentez müzik, MP3 listesi
   save.js             kampanya kaydı
   ui.js               sekmeler, sayfalar, başlatma
@@ -233,7 +258,8 @@ python3 -m http.server   # kökte yerel olarak dene: http://localhost:8000
 ## Bilinen sınırlar
 
 - Netrunning hafif tutuldu: kat kat NET mimarisi, programlar ve Black ICE dövüşü yok.
-- Rockerboy, Exec, Fixer ve Media'nın rol yetenekleri kitapta dövüş yeteneği olmadığı için dövüş menüsünde yer almıyor.
+- Exec ekip üyelerinden sadece Şirket Koruması tablosu var; diğer meslekler GM tarafından elle eklenebilir.
+- HP gibi oyun sırasında değişen alanlar kilitli sayfada da düzenlenebilir; bunlar Geçmiş kaydı ve GM uyarısıyla korunur.
 - GM anonim girişle oda kurup tarayıcı verilerini silerse GM yetkisini kaybeder. Bunu önlemek için Google ile bağlanmak gerekir.
 - Oda kodunu bilen herkes odaya katılabilir; kodu sadece oyuncularınla paylaş.
 

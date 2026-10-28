@@ -21,7 +21,7 @@ function luckStepHTML(cid) {
 function takeLuck(cid) {
   const c = S.chars[cid]; if (!c) return 0;
   const n = Math.min(LUCKSEL[cid] || 0, luckPool(c)); LUCKSEL[cid] = 0;
-  if (!n) return 0; c.luck = luckPool(c) - n; saveCharNow(cid); renderChars(); return n;
+  if (!n) return 0; c.luck = luckPool(c) - n; S.why = 'LUCK harcandı (' + n + ')'; saveCharNow(cid); renderChars(); return n;
 }
 function withLuck(cid, mod, notes) { const n = takeLuck(cid); if (n) { notes.push('LUCK +' + n); } return mod + n; }
 document.addEventListener('click', e => {
@@ -33,7 +33,7 @@ document.addEventListener('click', e => {
 }, true);
 const ATK_KINDS = ['ranged', 'auto', 'supp', 'shell', 'blast', 'melee', 'brawl', 'martial', 'grab'];
 function deepMerge(t, p) { for (const k in p) { if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k])) { if (!t[k] || typeof t[k] !== 'object') t[k] = {}; deepMerge(t[k], p[k]); } else t[k] = p[k]; } return t; }
-async function docSet(col, id, data) { if (!db) { (col === 'act' ? ACT.docs : ACT.reqs)[id] = clone(data); pumpSoon(); renderCards(); return; } try { await db.doc(col + '/' + id).set(data); } catch (e) { writeErr(e); } }
+async function docSet(col, id, data) { if (col === 'act') S.lastActTs = Date.now(); if (!db) { (col === 'act' ? ACT.docs : ACT.reqs)[id] = clone(data); pumpSoon(); renderCards(); return; } try { await db.doc(col + '/' + id).set(data); } catch (e) { writeErr(e); } }
 async function docPatch(col, id, patch) {
   const store = col === 'act' ? ACT.docs : ACT.reqs;
   if (store[id]) deepMerge(store[id], clone(patch));
@@ -81,6 +81,7 @@ function showMenu(actor, target, cx, cy) {
   const el = $('#actMenu'); const a = actor && S.tokens[actor]; const c = a && tokChar(a);
   let h = '<div class="am-head"><b>' + esc(a ? a.name : 'GM') + '</b>' + (target ? ' → <b>' + esc(S.tokens[target].name) + '</b>' : '') + '<button class="x" data-am="close" aria-label="Kapat">×</button></div>';
   if (a && !c) h += '<p class="hint">Bu tokenin karakter sayfası yok.</p>';
+  if (actor && turnOn()) { const [ok, why] = mayAct(actor, 'act'); if (!ok) h += '<p class="am-lock">' + esc(why) + ' Menüyü inceleyebilirsin ama aksiyon alamazsın.</p>'; }
   if (c && luckPool(c)) h += '<div class="am-luck">' + luckStepHTML(a.charId) + '<small>Seçtiğin aksiyonun zarına eklenir.</small></div>';
   if (c) {
     const it = (k, lab, sub, extra) => '<button class="am-it" data-am="' + k + '"' + (extra || '') + '><span>' + esc(lab) + '</span>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</button>';
@@ -103,6 +104,7 @@ function showMenu(actor, target, cx, cy) {
       }
     });
     h += '<div class="am-sec"><h5>Silahlar</h5>' + (atk || '<p class="hint">Silah yok.</p>') + '</div>';
+    if ((c.cyber || []).some(x => /sandevistan/i.test(x.n || ''))) h += '<div class="am-sec"><h5>Cyberware</h5>' + it('sande', sandeActive(c) ? 'Sandevistan etkin' : 'Sandevistan\'ı etkinleştir', sandeActive(c) ? 'inisiyatife +3 (1 dakika)' : 'Aksiyon · bir dakika inisiyatife +3, sonra 1 saat bekleme') + '</div>';
     h += roleMenuHTML(actor, target, c, it);
     h += '<div class="am-sec"><h5>Yakın dövüş</h5>' + it('brawl', 'Yumruk', 'DEX + Brawling · ' + brawlDice(+c.stats.BODY || 0, hasCyberarm(c))) + it('grab', 'Boğuşma', 'DEX + Brawling, karşıt') + ((+(c.skills || {})['Martial Arts'] || 0) ? it('martial', 'Dövüş sanatları', 'yarım zırh') : '') + '</div>';
     h += '<div class="am-sec"><h5>Beceriler</h5>' + Object.keys(SOCIAL).map(k => { const s = SOCIAL[k]; return it('soc-' + k, s.n, s.stat + (s.sk ? ' + ' + s.sk : ' + itibar') + ' ↔ ' + s.ds + (s.dsk ? ' + ' + s.dsk : ' + itibar')); }).join('') + '</div>';
@@ -199,15 +201,20 @@ function confirmTargeting() {
   const T = S.targeting; if (!T) return;
   const picks = T.picks.slice(); endTargeting();
   if (T.mode === 'req') { if (!picks.length) return; openReqForm(picks); return; }
+  if (T.mode === 'zap') { if (picks[0]) netZap(T.actor, picks[0]); return; }
   if (T.mode === 'turret') { if (picks[0]) netOperate(T.dev, 'fire', T.by, picks[0]); return; }
   if (!picks.length && T.area !== 'blast') { toast('Alanda hedef yok.', 'err'); if (T.area !== 'blast') return; }
   const A = Object.assign({}, T.act, { targets: picks, cell: T.cell || null });
-  if (A.twice) { const list = picks.length === 1 ? [picks[0], picks[0]] : picks.slice(0, 2); lockRoll(async () => { for (const p of list) await runActionInner(Object.assign({}, A, { targets: [p], twice: false })); }); return; }
+  if (A.twice) { if (A.actor && !gateAct(A.actor, 'act')) return; const list = picks.length === 1 ? [picks[0], picks[0]] : picks.slice(0, 2); lockRoll(async () => { const t0 = Date.now(); for (const p of list) await runActionInner(Object.assign({}, A, { targets: [p], twice: false })); if ((S.lastActTs || 0) >= t0) useAct(A.actor, 'act'); }); return; }
   runAction(A);
 }
 
 // ---- başlatma: saldıranın istemcisi ----
-function runAction(A) { return lockRoll(() => runActionInner(A)); }
+function runAction(A) {
+  if (A.kind === 'zap') return lockRoll(() => runActionInner(A));
+  if (A.actor && !gateAct(A.actor, 'act')) return;
+  return lockRoll(async () => { const t0 = Date.now(); await runActionInner(A); if ((S.lastActTs || 0) >= t0) useAct(A.actor, 'act'); });
+}
 async function runActionInner(A) {
   const a = S.tokens[A.actor], c = tokChar(a); if (!a || !c) return;
   const w = A.w; const info = w ? (WEAPON[w.n] || {}) : {}; const cls = w ? (w.cls || info.cls || 'pistol') : null;
@@ -375,20 +382,20 @@ async function resolveDefense(id, tid) {
     const dv = ARMOR_DV[c.armor]; if (!dv) return docPatch('act', id, { tg: { [tid]: { st: 'done', res: 'Tamir edilecek zırh yok' } } });
     D = dv; hit = atk > dv;
     if (hit && c.juryLock) { hit = false; res = 'Bu zırh zaten saha tamiri gördü; önce tam tamir gerekli'; }
-    else if (hit) { c.juryPrev = { spBody: +c.spBody || 0, spHead: +c.spHead || 0 }; c.spBody = ARMOR[c.armor] || 0; c.spHead = ARMOR[c.armor] || 0; c.juryLock = 1; saveCharNow(t.charId); renderChars(); dirty(); res = c.armor + ' saha tamiriyle tam SP ' + c.spBody; }
+    else if (hit) { S.why = 'saha tamiri'; c.juryPrev = { spBody: +c.spBody || 0, spHead: +c.spHead || 0 }; c.spBody = ARMOR[c.armor] || 0; c.spHead = ARMOR[c.armor] || 0; c.juryLock = 1; saveCharNow(t.charId); renderChars(); dirty(); res = c.armor + ' saha tamiriyle tam SP ' + c.spBody; }
     else res = 'Tamir tutmadı (DV ' + dv + ')';
     playFx({ k: 'gear', a: d.a, b: tid, res: hit ? 'hit' : 'miss', txt: hit ? 'SP ' + c.spBody : 'TUTMADI', col: hit ? '#41cfd6' : '#ff8090' });
     return docPatch('act', id, { tg: { [tid]: { st: 'done', def: D, hit, res } } });
   } else if (kind === 'drug') {
     if (!c) return docPatch('act', id, { tg: { [tid]: { st: 'done', res: 'Sayfası yok' } } });
-    const [ok, msg] = applyDrug(c, d.drug); if (ok) { saveCharNow(t.charId); renderChars(); renderTokCard(); dirty(); }
+    const [ok, msg] = applyDrug(c, d.drug); if (ok) { S.why = 'ilaç: ' + (DRUGS[d.drug] || {}).n; saveCharNow(t.charId); renderChars(); renderTokCard(); dirty(); }
     playFx({ k: ok ? 'heal' : 'text', b: tid, txt: ok ? (d.drug === 'speed' ? '+HP' : DRUGS[d.drug].n.toUpperCase()) : 'ETKİSİZ', col: ok ? '#7bd88f' : '#929b96' });
     return docPatch('act', id, { tg: { [tid]: { st: 'done', hit: ok, res: msg } } });
   } else if (kind === 'qf' || kind === 'treat') {
     if (!c) return docPatch('act', id, { tg: { [tid]: { st: 'done', res: 'Sayfası yok' } } });
     const x = (c.crits || []).find(y => y.id === (e.inj || d.inj)); const spec = x && INJ[injKey(x)];
     hit = atk > e.dv; D = e.dv;
-    if (hit && x) { x.st = kind === 'treat' ? 'treated' : (spec.perm ? 'treated' : 'qf'); saveCharNow(t.charId); renderChars(); dirty(); }
+    if (hit && x) { x.st = kind === 'treat' ? 'treated' : (spec.perm ? 'treated' : 'qf'); S.why = kind === 'treat' ? 'tedavi' : 'hızlı müdahale'; saveCharNow(t.charId); renderChars(); dirty(); }
     res = hit ? (spec ? spec.n : 'Yara') + ': ' + (kind === 'treat' ? 'tedavi edildi' : spec && spec.perm ? 'kalıcı olarak giderildi' : 'gün sonuna kadar etkisiz') : 'Başarısız (DV ' + e.dv + ')';
     playFx({ k: 'heal', b: tid, a: d.a, res: hit ? 'hit' : 'miss', txt: hit ? (kind === 'treat' ? 'TEDAVİ' : 'MÜDAHALE') : 'BAŞARISIZ', col: hit ? '#7bd88f' : '#ff8090' });
     return docPatch('act', id, { tg: { [tid]: { st: 'done', def: D, hit, res } } });
@@ -396,7 +403,7 @@ async function resolveDefense(id, tid) {
     if (!c) return docPatch('act', id, { tg: { [tid]: { st: 'done', res: 'Sayfası yok' } } });
     const hp = +c.hp, dv = hp < 1 ? 15 : hp < swThreshold(c) ? 13 : 10;
     hit = atk > dv; D = dv;
-    if (hit) { if (hp < 1) { c.hp = 1; c.dsPen = dsBaseOf(c); } c.stab = true; saveCharNow(t.charId); renderChars(); }
+    if (hit) { if (hp < 1) { c.hp = 1; c.dsPen = dsBaseOf(c); } c.stab = true; S.why = 'stabilizasyon'; saveCharNow(t.charId); renderChars(); }
     res = hit ? (hp < 1 ? 'Stabilize edildi: 1 HP' : 'Stabilize edildi') : 'Stabilize edilemedi (DV ' + dv + ')';
     playFx({ k: 'heal', b: tid, a: d.a, res: hit ? 'hit' : 'miss', txt: hit ? (hp < 1 ? '+1 HP' : 'STABİL') : 'BAŞARISIZ', col: hit ? '#7bd88f' : '#ff8090' });
     return docPatch('act', id, { tg: { [tid]: { st: 'done', def: D, hit, res } } });
@@ -441,7 +448,7 @@ async function rollActDamage(id) {
   if (k === 'ram' && at && at.veh) {
     at.veh.sdp = Math.max(0, at.veh.sdp - r.total); const dead = at.veh.sdp <= 0; const vn = at.veh.n; if (dead) at.veh = null; setDoc(tokPath(d.a), at);
     playFx({ k: dead ? 'boom' : 'text', b: d.a, c: { x: at.x, y: at.y }, txt: dead ? vn.toUpperCase() + ' HURDA' : 'SDP −' + r.total, col: '#f2c230', r: 1.5 });
-    if (ac) { injAdd(ac, 'h8'); saveCharNow(at.charId); renderChars(); }
+    if (ac) { injAdd(ac, 'h8'); S.why = 'çarpma: Whiplash'; saveCharNow(at.charId); renderChars(); }
   }
   await docPatch('act', id, { dmg: { total, sixes: r.sixes, vals: r.vals } });
 }
@@ -462,7 +469,7 @@ async function applyHit(id, tid) {
   if (d.aim === 'l' && through && critNames(c).indexOf('Kırık bacak') < 0) { c.crits = (c.crits || []).concat([{ id: 'i' + uid(), key: 'b8', n: INJ.b8.n, e: INJ.b8.e, loc: 'b', ds: 0, st: 'active', side: Math.random() < 0.5 ? 'L' : 'R' }]); notes.push('Kırık bacak'); }
   if (d.aim === 'i' && through) notes.push('Elindekini düşürdü');
   if (d.kind === 'ram') { if (injAdd(c, 'h8')) notes.push('Whiplash'); }
-  saveCharNow(t.charId); renderChars(); renderTokCard(); dirty();
+  S.why = 'hasar · ' + (d.label || ''); saveCharNow(t.charId); renderChars(); renderTokCard(); dirty();
   playFx({ k: through ? 'text' : 'shield', b: tid, txt: through ? '-' + through : 'SP ' + eff, col: through ? '#ff6b7d' : '#41cfd6' });
   const needCrit = d.dmg.sixes >= 2 || (wasMortal && (through || d.dmg.sixes >= 2));
   if (needCrit) { const nm = await critFor(t.charId, head ? 'h' : 'b'); if (nm) { notes.push('Kritik yara: ' + nm); playFx({ k: 'text', b: tid, txt: nm.toUpperCase(), col: '#ff4a5f', res: 'crit' }); } }
@@ -480,7 +487,8 @@ async function critFor(cid, loc) {
     c.crits = (c.crits || []).concat([{ id: 'i' + uid(), key: row[3], n: row[0], e: row[1], loc, ds: row[2], st: 'active', side: spec.side ? (Math.random() < 0.5 ? 'L' : 'R') : null }]);
     if (row[2]) c.dsPen = (+c.dsPen || 0) + 1;
     if (spec.fx.spinal) toast(charLabel(c) + ': omurga yaralanması, sonraki turunda Aksiyon alamaz.', 'err');
-    c.hp = Math.max(0, (+c.hp || 0) - 5); saveCharNow(cid); renderChars(); dirty();
+    if (spec.fx.spinal && turnOn()) c.skipAct = turnMark();
+    c.hp = Math.max(0, (+c.hp || 0) - 5); S.why = 'kritik yara: ' + row[0]; saveCharNow(cid); renderChars(); dirty();
     await logRoll({ who: charLabel(c), label: 'Kritik yara: ' + row[0], total: sum, detail: '2d6 [' + g[0].vals.join(', ') + '] · ' + row[1] + ' +5 hasar doğrudan HP\'den düştü.', kind: 'crit', crit: 'hi' });
     return row[0];
   }
@@ -554,7 +562,7 @@ function renderCards() {
       h += '<div class="card gm"><b>' + esc(r.label) + '</b><span class="dim"> · DV ' + (s ? s.dv : '?') + '</span><ul class="rqlist">' + Object.entries(r.tg).map(([tid, e]) => '<li><span>' + esc(e.n) + '</span><span class="mono">' + (e.st === 'wait' ? 'bekliyor' : e.st === 'rolled' ? e.total : (e.total != null ? e.total + ' · ' : '') + (e.ok ? '<i class="ok">başarılı</i>' : '<i class="bad">başarısız</i>')) + '</span>' + (e.st === 'wait' && ownerOf(tid) && ownerOf(tid) !== S.me.id && tokChar(S.tokens[tid] || {}) ? '<button class="linkbtn" data-rq="' + esc(id) + '" data-t="' + esc(tid) + '">Onun yerine at</button>' : '') + '</li>').join('') + '</ul><div class="row"><button class="btn sm" data-rqx="' + esc(id) + '">Kapat</button></div></div>';
     }
   }
-  h += backupCardsHTML();
+  h += backupCardsHTML() + auditCardsHTML() + ipCardsHTML();
   // GM: oyuncu cevabı bekleyen aksiyonlar
   if (S.me.isGM) for (const [id, d] of Object.entries(ACT.docs)) {
     if (d.stage !== 'def') continue;

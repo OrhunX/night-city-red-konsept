@@ -102,6 +102,7 @@ function renderTokCard() {
   if (c && caOf(c) && caSum(caOf(c))) tags.push('<span class="dchip">CA ' + CA.filter(x => caOf(c)[x.k]).map(x => x.n.split(' ')[0] + ' ' + caOf(c)[x.k]).join(' · ') + '</span>');
   if (c && c.stim) tags.push('<span class="dchip pc">Stim</span>');
   if (tags.length) hp += '<div class="dchips">' + tags.join('') + '</div>';
+  hp += turnStatusHTML(id);
   el.hidden = false;
   el.innerHTML = '<div class="tc-head">' + (im ? '<img class="tc-img" alt="" src="' + esc(im) + '">' : '<span class="tc-dot" style="background:' + esc(tk.color) + '"></span>') + '<div><b>' + esc(tk.name) + '</b><small>' + esc(sub) + (tk.hidden ? ' · oyunculardan gizli' : '') + '</small></div><button class="x" data-act="tokClose" aria-label="Kapat">×</button></div>' + hp
     + '<div class="tc-row">' + (canAct(id) && c ? '<button class="btn sm primary" data-act="openActMenu">Aksiyon</button>' : '') + (S.me.isGM ? '<button class="btn sm" data-act="reqCheck">Kontrol iste</button>' : '') + (Object.entries(FX.pairs).some(([, p]) => p.a === id || p.b === id) && (S.me.isGM || canAct(id)) ? '<button class="btn sm" data-act="release">Boğuşmayı bitir</button>' : '') + '</div><div class="tc-row">' + (c ? '<button class="btn sm" data-act="openSheet" data-id="' + esc(tk.charId) + '">Sayfa</button><button class="btn sm" data-act="initOne" data-id="' + esc(tk.charId) + '">İnisiyatif</button>' : '')
@@ -150,6 +151,7 @@ function rollRow(r) {
 }
 function renderLogOnly() {
   const el = $('#rollLog');
+  if (S.tab === 'chat') setTimeout(renderChat, 0);
   el.innerHTML = S.rolls.length ? S.rolls.map(rollRow).join('') : '<li class="empty">Henüz zar atılmadı. Tablodan bir zar seç; açık atışları masadaki herkes canlı görür.</li>';
 }
 function renderLog() { renderLogOnly(); resolveNames(S.rolls.map(r => r.by)); }
@@ -189,7 +191,7 @@ function renderChars() {
   const ae = document.activeElement;
   if (ae && host.contains(ae) && ae.matches('input,textarea,select')) { S.sheetStale = true; updateDerived(S.charSel); return; }
   host.innerHTML = sheetHTML(S.charSel, c, canEditChar(c));
-  S.sheetStale = false; updateTargets();
+  S.sheetStale = false; updateTargets(); lockSheets();
 }
 function opt(v, l, cur) { return '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(l) + '</option>'; }
 function pips(c) { const mx = +c.stats.LUCK || 0, cur = c.luck == null ? mx : +c.luck; let h = ''; for (let i = 0; i < mx; i++) h += '<i class="' + (i < cur ? 'on' : '') + '"></i>'; return h || '<span class="dim">LUCK 0</span>'; }
@@ -275,7 +277,7 @@ function sheetHTML(id, c, ed) {
   }
   h += '<div class="sec-h"><h4>Notlar</h4></div><textarea data-f="notes" rows="3"' + ro + ' aria-label="Notlar" placeholder="Bağlantılar, borçlar, eurobucks, itibar…">' + esc(c.notes) + '</textarea>';
   const onMap = S.tokens['t_' + id];
-  h += '<div class="sh-actions">' + (ed ? '<button class="btn primary" data-act="toMap">' + (onMap ? 'Haritada göster' : 'Haritaya koy') + '</button>' : (onMap ? '<button class="btn" data-act="toMap">Haritada göster</button>' : '')) + '<button class="btn" data-act="initOne" data-id="' + E + '">İnisiyatif at</button>' + (S.me.isGM ? '<button class="btn" data-act="toggleVis" data-id="' + E + '">' + ((onMap ? onMap.hidden : c.hidden) ? ICON_EYE + ' Oyunculara göster' : ICON_EYE_OFF + ' Oyunculardan gizle') + '</button>' : '') + (ed ? '<button class="btn danger" data-act="delChar">Sayfayı sil</button>' : '') + '</div>';
+  h += '<div class="sh-actions">' + (ed ? '<button class="btn primary" data-act="toMap">' + (onMap ? 'Haritada göster' : 'Haritaya koy') + '</button>' : (onMap ? '<button class="btn" data-act="toMap">Haritada göster</button>' : '')) + '<button class="btn" data-act="initOne" data-id="' + E + '">İnisiyatif at</button>' + (window.FOLDER_ON && (ed || S.me.isGM) ? '<button class="btn" data-fsync="' + E + '">Klasöre kaydet</button>' : '') + (S.me.isGM ? '<button class="btn" data-act="toggleVis" data-id="' + E + '">' + ((onMap ? onMap.hidden : c.hidden) ? ICON_EYE + ' Oyunculara göster' : ICON_EYE_OFF + ' Oyunculardan gizle') + '</button>' : '') + (ed ? '<button class="btn danger" data-act="delChar">Sayfayı sil</button>' : '') + '</div>';
   if (!ed) h += '<p class="hint">Bu sayfa ' + esc(nameOf(c.owner)) + ' oyuncusuna ait; sadece görüntüleyebilirsin.</p>';
   h += '</div>';
   return h;
@@ -329,13 +331,14 @@ function syncNpcTok(id) {
   if (tk.name !== charLabel(c)) { tk.name = charLabel(c); ch = true; }
   if (ch) saveLater(tokPath(tid), () => S.tokens[tid], 500);
 }
-function saveChar(id, ms) { if (!S.chars[id]) return; saveLater(charPath(id), () => S.chars[id], ms == null ? 600 : ms); syncNpcTok(id); }
-function saveCharNow(id) { const p = charPath(id); clearTimeout(debounced[p]); delete debounced[p]; if (S.chars[id]) setDoc(p, S.chars[id]); syncNpcTok(id); }
+function saveChar(id, ms) { if (!S.chars[id]) return; const why = S.why; S.why = null; saveLater(charPath(id), () => { if (S.chars[id]) { S.why = why; charAudit(id); } return S.chars[id]; }, ms == null ? 600 : ms); syncNpcTok(id); }
+function saveCharNow(id) { const p = charPath(id); clearTimeout(debounced[p]); delete debounced[p]; if (S.chars[id]) { charAudit(id); setDoc(p, S.chars[id]); } syncNpcTok(id); }
 
 document.addEventListener('input', e => {
   const t = e.target; const f = t.dataset && t.dataset.f; if (!f) return;
   const sh = t.closest('.sheet'); if (!sh) return;
   const id = sh.dataset.id, c = S.chars[id]; if (!c || !canEditChar(c)) return;
+  if (sheetLocked(c) && LOCK_F.test(f)) { toast('Sayfa kilitli: bu alanı sadece GM değiştirebilir.', 'err'); renderChars(); return; }
   let v = t.value; if (t.type === 'number') v = v === '' ? 0 : clamp(+v, -99, 99);
   setPath(c, f, v);
   if (f === 'stats|LUCK' && c.luck != null) c.luck = Math.min(+c.luck, +v);
@@ -349,11 +352,11 @@ document.addEventListener('focusout', () => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.act === 'armorPreset') {
-    const id = t.closest('.sheet').dataset.id, c = S.chars[id]; if (!c) return;
+    const id = t.closest('.sheet').dataset.id, c = S.chars[id]; if (!c || sheetLocked(c)) return;
     c.armor = t.value; c.spBody = ARMOR[t.value] || 0; c.spHead = ARMOR[t.value] || 0; saveCharNow(id); renderChars(); dirty();
   }
   if (t.dataset.f === 'role') renderChars();
-  if (t.dataset.act === 'injSt') { const id = t.closest('.sheet').dataset.id, c = S.chars[id]; const x = normInj(c)[+t.dataset.i]; x.st = t.value; saveCharNow(id); renderChars(); dirty(); }
+  if (t.dataset.act === 'injSt') { const id = t.closest('.sheet').dataset.id, c = S.chars[id]; if (sheetLocked(c)) return; const x = normInj(c)[+t.dataset.i]; x.st = t.value; saveCharNow(id); renderChars(); dirty(); }
   if (t.id === 'animToggle') { S.anim = t.checked; try { localStorage.setItem('ncm-anim', S.anim ? '1' : '0'); } catch (x) { } }
   if (t.id === 'imgInput') onImagePicked(t);
   if (t.id === 'rollAs') S.rollAsTouched = true;
@@ -433,7 +436,7 @@ function placeToken(id, c) {
 function centerOn(tk) { S.view.x = VW / 2 - (tk.x + .5) * CS * S.view.s; S.view.y = VH / 2 - (tk.y + .5) * CS * S.view.s; S.userMoved = true; dirty(); }
 async function rollInit(charId) {
   const c = S.chars[charId]; if (!c) return;
-  const ref = effStat(c, 'REF'); const ir = caIr(c);
+  const ref = effStat(c, 'REF'); const ib = initBonus(c); const ir = ib.b;
   const g = await physRoll([{ n: 1, s: 10 }], 'İnisiyatif', { who: charLabel(c) });
   const d = g[0].vals[0], score = ref + d + ir;
   const init = clone(S.init || { order: [], turn: 0, round: 1 });
@@ -443,7 +446,7 @@ async function rollInit(charId) {
   init.order.sort((a, b) => b.score - a.score);
   S.init = init; renderInit(); dirty();
   await setDoc('table/init', init);
-  await logRoll({ who: charLabel(c), label: 'İnisiyatif', total: score, detail: 'REF ' + ref + ' + d10 [' + d + ']' + (ir ? ' + Initiative Reaction ' + ir : ''), kind: 'init' });
+  await logRoll({ who: charLabel(c), label: 'İnisiyatif', total: score, detail: 'REF ' + ref + ' + d10 [' + d + ']' + (ib.notes.length ? ' + ' + ib.notes.join(' + ') : ''), kind: 'init' });
 }
 function applyDamage(id) {
   const c = S.chars[id]; const inp = $('#dmg-' + CSS.escape(id)); const loc = $('#loc-' + CSS.escape(id)).value; const ty = $('#dty-' + CSS.escape(id)).value;
@@ -602,7 +605,7 @@ const ACTIONS = {
   },
   npcAllToMap: () => { Object.entries(S.chars).filter(([id, c]) => isNpc(c) && !S.tokens['t_' + id]).forEach(([id, c]) => placeToken(id, c)); },
   tokClose: () => { S.sel = null; renderTokCard(); dirty(); },
-  tokHp: b => { const tk = S.tokens[S.sel]; const c = tokChar(tk); if (!c) return; c.hp = Math.max(0, (+c.hp || 0) + (+b.dataset.v)); saveChar(tk.charId, 300); renderTokCard(); renderChars(); dirty(); },
+  tokHp: b => { const tk = S.tokens[S.sel]; const c = tokChar(tk); if (!c || sheetLocked(c)) { if (c) toast('Sayfa kilitli: HP\'yi sadece GM elle değiştirebilir.', 'err'); return; } c.hp = Math.max(0, (+c.hp || 0) + (+b.dataset.v)); saveChar(tk.charId, 300); renderTokCard(); renderChars(); dirty(); },
   tokColor: () => { const tk = S.tokens[S.sel]; if (!tk) return; const i = TOKEN_COLORS.indexOf(tk.color); tk.color = TOKEN_COLORS[(i + 1) % TOKEN_COLORS.length]; const id = S.sel; saveLater(tokPath(id), () => S.tokens[id], 300); renderTokCard(); dirty(); },
   tokHide: () => { const tk = S.tokens[S.sel]; if (!tk) return; if (tk.charId && S.chars[tk.charId]) setCharHidden(tk.charId, !tk.hidden); else setTokHidden(S.sel, !tk.hidden); },
   tokDel: b => armConfirm(b, () => { const id = S.sel; const p = tokPath(id); delete S.tokens[id]; S.sel = null; delDoc(p); renderTokCard(); renderCharList(); dirty(); }, 'Kaldır?'),
@@ -614,7 +617,7 @@ const ACTIONS = {
     for (let i = 0; i < list.length; i += 10) {
       const chunk = list.slice(i, i + 10);
       const g = await physRoll([{ n: chunk.length, s: 10 }], 'İnisiyatif · ' + chunk.length + ' kişi', { who: 'GM' });
-      chunk.forEach(([tid, tk], k) => { const c = tokChar(tk); const ref = c ? effStat(c, 'REF') + caIr(c) : 5; order.push({ cid: tk.charId || null, tok: tid, name: tk.name, score: ref + g[0].vals[k], npc: tk.kind === 'npc', hid: !!tk.hidden }); });
+      chunk.forEach(([tid, tk], k) => { const c = tokChar(tk); const ref = c ? effStat(c, 'REF') + initBonus(c).b : 5; order.push({ cid: tk.charId || null, tok: tid, name: tk.name, score: ref + g[0].vals[k], npc: tk.kind === 'npc', hid: !!tk.hidden }); });
     }
     order.sort((a, b) => b.score - a.score);
     S.init = { order, turn: 0, round: 1 }; renderInit(); dirty();
@@ -639,14 +642,17 @@ const ACTIONS = {
 };
 function stepInit(d) {
   const init = clone(S.init); const n = (init.order || []).length; if (!n) return;
+  const prevTok = (init.order[init.turn || 0] || {}).tok || null;
   init.turn = (init.turn || 0) + d;
   if (init.turn >= n) { init.turn = 0; init.round = (init.round || 1) + 1; }
   if (init.turn < 0) { init.turn = n - 1; init.round = Math.max(1, (init.round || 1) - 1); }
-  S.init = init; setDoc('table/init', init); renderInit(); dirty();
+  S.init = init; onTurnAdvance(prevTok, (init.order[init.turn] || {}).tok || null); setDoc('table/init', init); renderInit(); dirty();
   const e = init.order[init.turn]; if (e && e.tok && S.tokens[e.tok]) { S.sel = e.tok; renderTokCard(); }
 }
 function renderInit() {
   const o = S.init.order || [];
+  turnNotify();
+  const tf = $('#turnFree'); if (tf) { tf.textContent = 'Sıra kuralı: ' + (S.init.free ? 'kapalı' : 'açık'); tf.classList.toggle('on', !S.init.free); }
   $('#initRound').textContent = S.init.round || 1;
   $('#initList').innerHTML = o.length ? o.map((e, i) => {
     const tk = e.tok && S.tokens[e.tok]; if ((e.hid || (tk && tk.hidden)) && !S.me.isGM) return '';
@@ -733,6 +739,7 @@ function switchTab(t) {
   $$('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'));
   $$('.tabpanel').forEach(p => p.hidden = p.id !== 'tab-' + t);
   if (t === 'chars' || t === 'npc') renderChars();
+  if (t === 'chat') { CHAT.unread = 0; CHAT.seenTs = Date.now(); renderChatBadge(); renderChat(); setTimeout(() => { const i = $('#chatIn'); if (i && matchMedia('(pointer:fine)').matches) i.focus(); }, 0); }
 }
 function setTool(t) {
   if ((t === 'paint' || t === 'room' || t === 'fill' || t === 'dev') && !S.me.isGM) return;
@@ -795,7 +802,8 @@ function buildSwatches() {
 })();
 
 // ===== SES VE MÜZİK: music.js =====
-Object.assign(ACTIONS, MUSIC_ACTS, NET_ACTS, ROLE_ACTS, SAVE_ACTS);
+Object.assign(ACTIONS, MUSIC_ACTS, NET_ACTS, ROLE_ACTS, SAVE_ACTS, TURN_ACTS, LOCK_ACTS2, IP_ACTS);
+gateSheetRolls();
 
 // ===== BAŞLANGIÇ =====
 function applyRole() {

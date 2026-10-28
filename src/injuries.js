@@ -128,11 +128,11 @@ function walkPenalty(tid, squares) {
   const tk = S.tokens[tid], c = tokChar(tk); if (!c || squares <= 2) return;
   const f = injEff(c);
   if (f.walk) {
-    const dmg = 5 * f.walk; c.hp = Math.max(0, (+c.hp || 0) - dmg); saveCharNow(tk.charId); renderChars(); renderTokCard();
+    const dmg = 5 * f.walk; c.hp = Math.max(0, (+c.hp || 0) - dmg); S.why = 'yürürken yara hasarı'; saveCharNow(tk.charId); renderChars(); renderTokCard();
     playFx({ k: 'text', b: tid, txt: '-' + dmg, col: '#ff6b7d' });
     toast(charLabel(c) + ' 4 m\'den fazla yürüdü: yarası yüzünden ' + dmg + ' hasar aldı.', 'err');
   }
-  if (f.ear) toast(charLabel(c) + ' kulak yarası nedeniyle sonraki turunda hareket aksiyonu alamaz.');
+  if (f.ear) { toast(charLabel(c) + ' kulak yarası nedeniyle sonraki turunda hareket aksiyonu alamaz.'); if (canEditChar(c) && turnOn()) { c.skipMove = turnMark(); S.why = 'kulak yarası'; saveCharNow(tk.charId); } }
 }
 function effSummary(c) {
   const f = injEff(c), out = [], w = woundPen(c), ap = armorPen(c);

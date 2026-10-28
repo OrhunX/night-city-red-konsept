@@ -58,6 +58,10 @@ function writeErr(e) {
 function localApply(path, data) {
   const [col, id] = path.split('/');
   if (col === 'gm' && id === 'map') { S.map = data; S.mapLoaded = true; onMapChange(); }
+  else if (col === 'chat') { chatApplyLocal(id, data); }
+  else if (col === 'clog') { if (data) AUDIT.logs[id] = data; renderCards(); }
+  else if (col === 'ipreq') { if (data) IP.reqs[id] = data; else delete IP.reqs[id]; renderCards(); }
+  else if (col === 'table' && id === 'opts') { IP.opts = Object.assign({ ipAuto: false }, data || {}); }
   else if (col === 'dev') { if (data) NET.st[id] = data; else delete NET.st[id]; dirty(); renderDevCard(); }
   else if (col === 'table' && id === 'backup') { applyBackup(data); }
   else if (col === 'gm' && id === 'clock') { S.day = data ? (+data.day || 0) : 0; }
@@ -87,7 +91,7 @@ function mergeTokens() {
 function mergeChars() {
   const o = Object.assign({}, S._c.chars, S._c.npcs);
   for (const k in debounced) { const m = /^(chars|npcs)\/(.+)$/.exec(k); if (m && S.chars[m[2]]) o[m[2]] = S.chars[m[2]]; }
-  S.chars = o; renderChars(); dirty(); renderTokCard();
+  S.chars = o; Object.entries(o).forEach(([id, c]) => auditSeed(id, c)); renderChars(); dirty(); renderTokCard();
 }
 function subscribe() {
   const warn = e => console.warn('db', e);
@@ -111,6 +115,7 @@ function subscribe() {
   db.collection('rolls').orderBy('ts', 'desc').limit(40).onSnapshot(q => {
     S.rolls = q.docs.map(d => Object.assign({ id: d.id }, d.data())); renderLog();
   }, warn);
+  chatSubscribe(); auditSubscribe(); ipSubscribe();
   db.collection('dev').onSnapshot(q => { const o = {}; q.docs.forEach(d => o[d.id] = d.data()); NET.st = o; dirty(); renderDevCard(); }, warn);
   db.doc('table/backup').onSnapshot(s => applyBackup(s.exists ? s.data() : null), warn);
   db.doc('gm/clock').onSnapshot(s => { S.day = s.exists ? (+s.data().day || 0) : 0; }, warn);

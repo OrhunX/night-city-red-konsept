@@ -105,6 +105,21 @@ function makeUser() {
     isOwner: () => isRoomGM(),
   };
 }
+// ---- aynı tarayıcıda oyuncu koltuğu: sekmeye özel ikinci (geçici) anonim kimlik ----
+async function usePlayerSeat() {
+  if (FB.seat === 'player') return;
+  const app2 = firebase.initializeApp(window.FIREBASE_CONFIG, 'seat');
+  const a2 = app2.auth();
+  try { await a2.setPersistence(firebase.auth.Auth.Persistence.SESSION); } catch (e) { }
+  await new Promise(r => { const off = a2.onAuthStateChanged(() => { off(); r(); }); });
+  let u = a2.currentUser; if (!u) { await a2.signInAnonymously(); u = a2.currentUser; }
+  FB.auth = a2; FB.fs = app2.firestore(); try { FB.fs.settings({ ignoreUndefinedProperties: true, merge: true }); } catch (e) { }
+  FB.rt = app2.database(); if (window.FIREBASE_EMULATOR) { a2.useEmulator('http://127.0.0.1:9099'); FB.fs.useEmulator('127.0.0.1', 8080); FB.rt.useEmulator('127.0.0.1', 9000); }
+  FB.uid = u.uid; FB.user = u; FB.seat = 'player';
+}
+const seatKey = c => 'ncm-seat-' + c;
+function getSeat(c) { try { return sessionStorage.getItem(seatKey(c)); } catch (e) { return null; } }
+function setSeat(c, v) { try { sessionStorage.setItem(seatKey(c), v); } catch (e) { } }
 function isRoomGM() { return !!(FB.room && Array.isArray(FB.room.gms) && FB.room.gms.indexOf(FB.uid) >= 0); }
 // claude.ai çalışma zamanı yerine geçen kabuk
 function installShim() {
@@ -112,7 +127,7 @@ function installShim() {
   FB.adapters = { db: sdb, room: makeRoom(FB.code), user: makeUser(), assets: makeAssets(sdb), downloads: null };
   window.claude = { use: async n => FB.adapters[n] || null };
   sdb.collection('members').onSnapshot(q => { const o = {}; q.docs.forEach(d => o[d.id] = d.data()); FB.members = o; if (typeof renderPeers === 'function') { renderPeers(); } if (window.renderLobby) renderLobby(); if (typeof renderLogOnly === 'function') { Object.keys(o).forEach(k => { names[k] = o[k].name || ''; }); renderLogOnly(); renderCharList(); } }, e => console.warn(e));
-  FB.fs.doc(prefix).onSnapshot(s => { if (s.exists) { FB.room = s.data(); renderRoomChip(); } }, () => { });
+  FB.fs.doc(prefix).onSnapshot(s => { if (!s.exists || s.data().closed) { if (!FB.deleting) roomClosedOverlay(); return; } FB.room = s.data(); renderRoomChip(); }, () => { });
 }
 
 // ===== BAŞLANGIÇ EKRANI =====
@@ -148,7 +163,7 @@ async function renderMyRooms() {
   let list = LS.get('rooms', []);
   try { const q = await FB.fs.collection('rooms').where('gms', 'array-contains', FB.uid).limit(20).get(); q.docs.forEach(d => { if (!list.some(x => x.c === d.id)) list.push({ c: d.id, n: d.data().name, gm: 1, ts: d.data().created || 0 }); }); } catch (e) { }
   list = list.sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 12);
-  $s('#stRooms').innerHTML = list.length ? list.map(x => '<li><button class="st-room" data-room="' + esc(x.c) + '"><b>' + esc(x.n || 'Adsız oda') + '</b><small>' + showCode(x.c) + (x.gm ? ' · GM' : ' · oyuncu') + '</small></button></li>').join('') : '<li class="st-empty">Henüz bir odaya girmedin.</li>';
+  $s('#stRooms').innerHTML = list.length ? list.map(x => '<li class="st-ri"><button class="st-room" data-room="' + esc(x.c) + '"><b>' + esc(x.n || 'Adsız oda') + '</b><small>' + showCode(x.c) + (x.gm ? ' · GM' : ' · oyuncu') + '</small></button>' + (x.gm ? '<button type="button" class="st-del" data-delroom="' + esc(x.c) + '" aria-label="' + esc(x.n || 'Oda') + ' odasını sil" title="Odayı sil">Sil</button>' : '<button type="button" class="st-del" data-forget="' + esc(x.c) + '" aria-label="Listeden kaldır" title="Listeden kaldır">×</button>') + '</li>').join('') : '<li class="st-empty">Henüz bir odaya girmedin.</li>';
 }
 function needName() { const n = $s('#stName').value.trim().slice(0, 24); if (!n) { startMsg('Önce masada görünecek adını yaz.', 'err'); $s('#stName').focus(); return null; } FB.name = n; LS.set('name', n); return n; }
 async function createRoom() {
@@ -157,7 +172,7 @@ async function createRoom() {
   for (let t = 0; t < 5; t++) {
     let c = ''; const a = new Uint32Array(6); crypto.getRandomValues(a); a.forEach(x => c += CODE_CH[x % CODE_CH.length]);
     const ref = FB.fs.doc('rooms/' + c);
-    try { const s = await ref.get(); if (s.exists) continue; await ref.set({ name: nm, gms: [FB.uid], gmName: FB.name, created: Date.now() }); return joinRoom(c); }
+    try { const s = await ref.get(); if (s.exists) continue; await ref.set({ name: nm, gms: [FB.uid], gmName: FB.name, created: Date.now() }); setSeat(c, 'gm'); return joinRoom(c); }
     catch (e) { startMsg('Oda kurulamadı: ' + (e.code || e.message) + '. Firestore kurallarını yüklediğinden emin ol.', 'err'); return; }
   }
   startMsg('Oda kodu üretilemedi, tekrar dene.', 'err');
@@ -166,8 +181,18 @@ async function joinRoom(code) {
   if (!needName()) return; code = normCode(code); if (code.length !== 6) { startMsg('Oda kodu 6 karakter: NC-XXXXXX', 'err'); return; }
   startMsg('Odaya bağlanılıyor…');
   let s; try { s = await FB.fs.doc('rooms/' + code).get(); } catch (e) { startMsg('Bağlanılamadı: ' + (e.code || e.message), 'err'); return; }
-  if (!s.exists) { startMsg(showCode(code) + ' diye bir oda yok. Kodu kontrol et.', 'err'); return; }
-  FB.code = code; FB.room = s.data();
+  if (!s.exists || s.data().closed) { startMsg(showCode(code) + ' diye açık bir oda yok. Kodu kontrol et.', 'err'); return; }
+  FB.room = s.data();
+  // odayı kuran bu kimlikse: GM mi oyuncu mu olarak gireceğini sor
+  if (isRoomGM() && FB.seat !== 'player') {
+    let seat = getSeat(code);
+    if (!seat) { seat = await askSeat(code); if (!seat) { startMsg(''); return; } setSeat(code, seat); }
+    if (seat === 'player') {
+      startMsg('Oyuncu kimliği hazırlanıyor…');
+      try { await usePlayerSeat(); s = await FB.fs.doc('rooms/' + code).get(); FB.room = s.data(); } catch (e) { startMsg('Oyuncu kimliği açılamadı: ' + (e.code || e.message), 'err'); return; }
+    }
+  }
+  FB.code = code;
   const rooms = LS.get('rooms', []).filter(x => x.c !== code); rooms.unshift({ c: code, n: FB.room.name, gm: isRoomGM() ? 1 : 0, ts: Date.now() }); LS.set('rooms', rooms.slice(0, 20));
   LS.set('last', { c: code, n: FB.room.name });
   if (location.hash.slice(1) !== code) history.replaceState(null, '', '#' + code);
@@ -176,13 +201,51 @@ async function joinRoom(code) {
   FB.adapters.room.presence({ c: FB.color, gm: isRoomGM() });
   startMsg(''); showLobby();
 }
+// GM/oyuncu seçimi
+function askSeat(code) {
+  return new Promise(res => {
+    const el = $s('#stSeat'); el.hidden = false;
+    $s('#stSeatCode').textContent = showCode(code);
+    const done = v => { el.hidden = true; el.onclick = null; res(v); };
+    el.onclick = e => { const b = e.target.closest('[data-seat]'); if (b) done(b.dataset.seat === 'x' ? null : b.dataset.seat); };
+  });
+}
+// ===== ODA SİLME (sadece GM) =====
+const ROOM_COLS = ['members', 'tokens', 'hidden', 'chars', 'npcs', 'act', 'req', 'rolls', 'table', 'gm', 'dev', 'files', 'files_p', 'saves', 'savep', 'secret', 'gmsecret', 'chat', 'clog', 'ipreq'];
+async function deleteRoom(code, onStep) {
+  const base = 'rooms/' + code; const ref = FB.fs.doc(base);
+  const s = await ref.get(); if (!s.exists) return;
+  if ((s.data().gms || []).indexOf(FB.uid) < 0) throw Object.assign(new Error('Bu odanın GM\'i değilsin.'), { code: 'not-gm' });
+  await ref.set({ closed: true, closedAt: Date.now() }, { merge: true });
+  let uids = [];
+  try { const m = await FB.fs.collection(base + '/members').get(); uids = m.docs.map(d => d.id); } catch (e) { }
+  const cols = ROOM_COLS.concat(uids.map(u => 'wsp/' + u + '/m'));
+  for (const col of cols) {
+    if (onStep) onStep(col);
+    let q; try { q = await FB.fs.collection(base + '/' + col).get(); } catch (e) { continue; }
+    const docs = q.docs.slice();
+    for (let i = 0; i < docs.length; i += 25) await Promise.all(docs.slice(i, i + 25).map(d => FB.fs.doc(base + '/' + col + '/' + d.id).delete().catch(() => { })));
+  }
+  try { await FB.rt.ref('rooms/' + code).remove(); } catch (e) { }
+  await ref.delete();
+  LS.set('rooms', LS.get('rooms', []).filter(x => x.c !== code));
+  const last = LS.get('last', null); if (last && last.c === code) LS.set('last', null);
+}
+function roomClosedOverlay() {
+  if ($s('#roomGone')) return;
+  const d = document.createElement('div'); d.id = 'roomGone'; d.className = 'room-gone'; d.setAttribute('role', 'alertdialog');
+  d.innerHTML = '<div><b>Bu masa GM tarafından kapatıldı</b><p>Ana menüye dönülüyor…</p></div>';
+  document.body.appendChild(d); setTimeout(() => { history.replaceState(null, '', location.pathname); location.reload(); }, 3500);
+}
 function showLobby() {
   $s('#stMain').hidden = true; $s('#stLobby').hidden = false;
   $s('#lbName').textContent = FB.room.name || 'Oda';
   $s('#lbCode').textContent = showCode(FB.code);
   $s('#lbRole').textContent = isRoomGM() ? 'Game Master' : 'Oyuncu';
   $s('#lbRole').className = 'st-role ' + (isRoomGM() ? 'gm' : '');
+  const sw = $s('#lbSeatSw'); if (sw) { const seat = getSeat(FB.code); sw.hidden = !seat; sw.textContent = seat === 'player' ? 'GM olarak girmek için tıkla' : 'Bu sekmede oyuncu olarak gir'; sw.onclick = () => { setSeat(FB.code, seat === 'player' ? 'gm' : 'player'); location.reload(); }; }
   $s('#lbHint').textContent = isRoomGM() ? 'Kodu ya da linki oyuncularına gönder. Onlar "Odaya katıl"dan girer. Masaya girince haritayı, NPC\'leri ve müziği sen yönetirsin.' : 'Masaya girince Karakter sekmesinden karakterini oluştur ya da GM\'nin verdiğini seç; tokenini haritaya koy.';
+  mountFolder($s('#lbFolder')); folderWatch();
   renderLobby();
 }
 window.renderLobby = function () {
@@ -194,13 +257,17 @@ window.renderLobby = function () {
 let booted = false;
 function enterTable() {
   $s('#startScr').hidden = true; document.body.classList.add('in-room'); stopMenuVideo();
-  if (!booted) { booted = true; boot().then(() => { renderRoomChip(); }); }
+  if (!booted) { booted = true; boot().then(() => { renderRoomChip(); placePending(); mountFolderButtons(); }); }
+}
+function mountFolderButtons() {
+  ['#tab-chars .newrow', '#tab-npc .npcform'].forEach(q => { const r = $s(q); if (r && !r.querySelector('[data-fopen]')) r.insertAdjacentHTML('beforeend', '<button class="btn" data-fopen>Klasörüm</button>'); });
 }
 function renderRoomChip() {
   const r = document.querySelector('.top .right'); if (!r || !FB.code) return;
   let el = $s('#roomChip');
   if (!el) { el = document.createElement('span'); el.id = 'roomChip'; el.className = 'roomchip'; r.insertBefore(el, r.firstChild); }
-  el.innerHTML = '<span class="rc-n">' + esc((FB.room && FB.room.name) || 'Oda') + '</span><button type="button" class="rc-code" data-copy="code" title="Oda kodunu kopyala">' + showCode(FB.code) + '</button><button type="button" class="rc-menu" data-menu="1" title="Ana menüye dön">Menü</button>';
+  const sp = $s('#savePop'); if (sp && isRoomGM() && !$s('#tblDelWrap')) { const w = document.createElement('div'); w.id = 'tblDelWrap'; w.className = 'tbl-del'; w.innerHTML = '<h4>Masayı sil</h4><p class="hint">Odadaki her şey kalıcı olarak silinir; bağlı oyuncular ana menüye döner.</p><button type="button" class="btn sm danger" id="tblDel">Masayı sil…</button>'; sp.appendChild(w); }
+  el.innerHTML = '<span class="rc-role ' + (isRoomGM() ? 'gm' : '') + '">' + (isRoomGM() ? 'GM' : 'Oyuncu') + '</span><span class="rc-n">' + esc((FB.room && FB.room.name) || 'Oda') + '</span><button type="button" class="rc-code" data-copy="code" title="Oda kodunu kopyala">' + showCode(FB.code) + '</button><button type="button" class="rc-menu" data-menu="1" title="Ana menüye dön">Menü</button>';
 }
 function copyText(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => (typeof toast === 'function' ? toast('Kopyalandı: ' + t) : startMsg('Kopyalandı: ' + t)), () => prompt('Kopyala:', t)); }
 const shareLink = () => location.origin + location.pathname + '#' + FB.code;
@@ -223,6 +290,27 @@ document.addEventListener('click', async e => {
     case 'stHelpBtn': $s('#stHelp').hidden = !$s('#stHelp').hidden; break;
   }
 });
+// oda silme onayı: kodu yazdırarak
+function openDelConfirm(code, anchor) {
+  document.querySelectorAll('.del-confirm').forEach(x => x.remove());
+  const box = document.createElement('div'); box.className = 'del-confirm';
+  box.innerHTML = '<p><b>' + showCode(code) + '</b> kalıcı olarak silinecek: harita, karakterler, NPC\'ler, zarlar, kayıtlar ve müzikler. Geri alınamaz.</p><label>Onaylamak için oda kodunu yaz<input class="del-in" autocomplete="off" placeholder="' + showCode(code) + '"></label><div class="row"><button type="button" class="btn sm danger del-go" disabled>Kalıcı olarak sil</button><button type="button" class="btn sm del-x">Vazgeç</button></div><p class="del-st" hidden></p>';
+  anchor.insertAdjacentElement('afterend', box);
+  const inp = box.querySelector('.del-in'), go = box.querySelector('.del-go'); inp.focus();
+  inp.addEventListener('input', () => { go.disabled = normCode(inp.value) !== code; });
+  box.querySelector('.del-x').onclick = () => box.remove();
+  go.onclick = async () => {
+    go.disabled = true; inp.disabled = true; const st = box.querySelector('.del-st'); st.hidden = false; st.textContent = 'Siliniyor…';
+    try { FB.deleting = code === FB.code; await deleteRoom(code, c => { st.textContent = 'Siliniyor: ' + c; }); st.textContent = 'Oda silindi.';
+      if (code === FB.code) { setTimeout(() => { history.replaceState(null, '', location.pathname); location.reload(); }, 900); } else { box.remove(); renderStart(); }
+    } catch (err) { st.textContent = 'Silinemedi: ' + (err.message || err.code); go.disabled = false; inp.disabled = false; FB.deleting = false; }
+  };
+}
+document.addEventListener('click', e => {
+  const d = e.target.closest('[data-delroom]'); if (d) { e.stopPropagation(); openDelConfirm(d.dataset.delroom, d.closest('li') || d); return; }
+  const f = e.target.closest('[data-forget]'); if (f) { e.stopPropagation(); LS.set('rooms', LS.get('rooms', []).filter(x => x.c !== f.dataset.forget)); renderMyRooms(); return; }
+  if (e.target.id === 'tblDel') { openDelConfirm(FB.code, e.target); }
+}, true);
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   if (e.target.id === 'stCode') joinRoom(e.target.value);
@@ -234,7 +322,8 @@ async function googleLink() {
   try { await FB.auth.currentUser.linkWithPopup(prov); FB.user = FB.auth.currentUser; renderStart(); startMsg('Google hesabın bağlandı. Başka cihazda Google ile girersen aynı kimlikle (ve GM yetkileriyle) devam edersin.'); }
   catch (e) {
     if (e.code === 'auth/credential-already-in-use' && e.credential) { try { await FB.auth.signInWithCredential(e.credential); startMsg('Google hesabınla giriş yapıldı.'); } catch (x) { startMsg('Google ile giriş yapılamadı: ' + (x.code || x.message), 'err'); } }
-    else if (e.code === 'auth/operation-not-allowed') startMsg('Google girişi Firebase\'de açık değil (Authentication → Sign-in method → Google).', 'err');
+    else if (e.code === 'auth/operation-not-allowed') startMsg('Bu masada Google girişi henüz açılmamış. Adınla anonim olarak devam edebilirsin; kimliğin bu tarayıcıda hatırlanır.', 'err');
+    else if (e.code === 'auth/unauthorized-domain') startMsg('Bu alan adı Firebase\'de yetkili değil (Authentication → Settings → Authorized domains).', 'err');
     else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') startMsg('Google bağlanamadı: ' + (e.code || e.message), 'err');
   }
 }

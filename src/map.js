@@ -447,7 +447,10 @@ function onDown(e) {
     if (id && canMoveTok(S.tokens[id])) {
       const tk = S.tokens[id], c = tokChar(tk);
       const mv = tk.veh ? tk.veh.move : (c ? effMove(c) : 6);
-      gest = { type: 'tok', id, start: { x: tk.x, y: tk.y }, cur: { x: tk.x, y: tk.y }, moved: false, move: mv, reach: reachFrom(m, tk.x, tk.y, tk.veh ? mv : mv * 2) };
+      const mb = moveBudget(id, mv); let budget = tk.veh ? (mb.free ? mv : Math.max(0, mv - (mb.used || 0))) : mb.budget;
+      if (turnOn() && !S.me.isGM) { const [ok, why] = mayAct(id, 'move'); if (!ok) { toast(why, 'err'); budget = -1; } else if (budget <= 0) { toast('Bu tur hareket hakkın bitti.', 'err'); budget = -1; } }
+      if (budget < 0) { gest = { type: 'pan', sx: e.offsetX, sy: e.offsetY, vx: S.view.x, vy: S.view.y, moved: false, cell }; dirty(); return; }
+      gest = { type: 'tok', id, start: { x: tk.x, y: tk.y }, cur: { x: tk.x, y: tk.y }, moved: false, move: Math.min(mv, budget), mvFull: mv, reach: reachFrom(m, tk.x, tk.y, budget) };
       S.drag = gest;
     } else gest = { type: 'pan', sx: e.offsetX, sy: e.offsetY, vx: S.view.x, vy: S.view.y, moved: false, cell };
   } else if (tool === 'measure') { gest = { type: 'measure' }; S.measure = { a: cell, b: cell }; }
@@ -486,10 +489,11 @@ function onUp() {
     if (!g.moved) { S.sel = g.id; S.actTok = canAct(g.id) ? g.id : S.actTok; S.selDev = null; renderTokCard(); renderDevCard(); }
     else {
       const occ = tokenAt(g.cur);
-      if (!walkable(m, g.cur.x, g.cur.y)) toast('Oraya geçilemez: ' + (TILE[tAt(m, g.cur.x, g.cur.y)] || { n: 'harita dışı' }).n.toLowerCase() + '.', 'err');
+      if (turnOn() && !S.me.isGM && !g.reach.has(g.cur.x + ',' + g.cur.y)) toast('Oraya bu tur ulaşamazsın.', 'err');
+      else if (!walkable(m, g.cur.x, g.cur.y)) toast('Oraya geçilemez: ' + (TILE[tAt(m, g.cur.x, g.cur.y)] || { n: 'harita dışı' }).n.toLowerCase() + '.', 'err');
       else if (occ && occ !== g.id) toast('O karede başka biri var.', 'err');
       else {
-        const tk = S.tokens[g.id]; const moved = Math.max(Math.abs(tk.x - g.cur.x), Math.abs(tk.y - g.cur.y)); tk.x = g.cur.x; tk.y = g.cur.y; S.sel = g.id; if (!tk.veh) walkPenalty(g.id, moved);
+        const tk = S.tokens[g.id]; const moved = Math.max(Math.abs(tk.x - g.cur.x), Math.abs(tk.y - g.cur.y)); tk.x = g.cur.x; tk.y = g.cur.y; S.sel = g.id; if (!tk.veh) walkPenalty(g.id, moved); useMove(g.id, g.reach.get(g.cur.x + ',' + g.cur.y) || moved, g.mvFull);
         setDoc(tokPath(g.id), tk); renderTokCard(); netMoved(g.id);
       }
     }

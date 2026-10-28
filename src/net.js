@@ -44,6 +44,8 @@ function apInRange(tid) { const t = S.tokens[tid]; if (!t) return []; return dev
 function naLeft(tid) { const t = S.tokens[tid]; const c = tokChar(t); const mx = naMax(rankOf(c)); const k = naKey(); if (!k) return { mx, left: mx, free: true }; const u = t.na && t.na.k === k ? t.na.n : 0; return { mx, left: Math.max(0, mx - u), free: false }; }
 function useNA(tid) {
   const t = S.tokens[tid]; const k = naKey(); if (!k) return true;
+  if (turnOn() && !gateAct(tid, 'net')) return false;
+  if (turnOn() && !S.me.isGM && tUsed(tid).act !== 'net') tSet(tid, { act: 'net' });
   const L = naLeft(tid); if (L.left <= 0) { toast('Bu tur NET aksiyonun kalmadı (' + L.mx + '/' + L.mx + ').', 'err'); return false; }
   t.na = { k, n: (t.na && t.na.k === k ? t.na.n : 0) + 1 }; setDoc(tokPath(tid), t); return true;
 }
@@ -100,7 +102,7 @@ async function netControl(tid, devId) {
   if (!useNA(tid)) return;
   const dv = s.ctl && S.tokens[s.ctl] ? (+s.chk || devDv(d)) : devDv(d);
   const r = await ifaceCheck(tid, 'Control · ' + DEV_T[d.t].n, dv);
-  if (r.okReal) { devSet(devId, { ctl: tid, chk: r.total }); playFx({ k: 'code', a: tid, c: devCell(d), txt: 'KONTROL', col: '#7bd88f' }); }
+  if (r.okReal) { devSet(devId, { ctl: tid, chk: r.total }); playFx({ k: 'code', a: tid, c: devCell(d), txt: 'KONTROL', col: '#7bd88f' }); chatEvent(S.tokens[tid].name + ' bir ' + DEV_T[d.t].n.toLowerCase() + ' sisteminin kontrolünü ele geçirdi.'); }
   else playFx({ k: 'code', a: tid, c: devCell(d), res: 'miss', txt: 'REDDEDİLDİ', col: '#ff8090' });
 }
 function nodeFree(devId) { const k = naKey(); if (!k) return true; if (devSt(devId).nk === k) { toast('Bir kontrol düğümü tur başına bir kez kullanılabilir.', 'err'); return false; } return true; }

@@ -536,6 +536,46 @@ label.mini input { width: 56px; min-height: 28px; }
 .am-luck { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; border: 1px solid #3a3210; background: #1b1806; padding: 4px 8px; }
 .am-luck > small { font-size: 11px; color: var(--muted); }
 .card .lk { display: flex; }
+
+/* sohbet */
+.tabs button[data-n]:not([data-n=""])::after { content: attr(data-n); margin-left: 5px; display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--hot); color: #fff; font: 700 10px var(--mono); vertical-align: 1px; }
+#tab-chat { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-height: 0; }
+#tab-chat[hidden] { display: none !important; }
+.ch-f button { font-size: 12px; }
+.chat { list-style: none; margin: 0; padding: 0 2px; display: grid; align-content: start; gap: 6px; overflow: auto; min-height: 240px; max-height: calc(100vh - 300px); }
+.ch-msg { display: flex; gap: 8px; align-items: flex-start; } .ch-msg > div { min-width: 0; flex: 1; background: var(--raise); border: 1px solid var(--line); padding: 6px 9px; }
+.ch-msg.mine > div { border-color: var(--line2); } .ch-msg.wsp > div { border-style: dashed; border-color: #6b4fbf; background: #17132a; }
+.ch-msg.ic > div { border-left: 3px solid var(--acc); }
+.ch-msg p { margin: 2px 0 0; font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ch-h { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; } .ch-h b { font-size: 12.5px; } .ch-h time, .ch-ev time, .ch-me time { margin-left: auto; font: 10.5px var(--mono); color: var(--dim); }
+.ch-tag, .ch-w { font: 600 10px var(--mono); color: var(--acc); text-transform: uppercase; letter-spacing: .06em; } .ch-w { color: #b48cff; }
+.ch-av { width: 34px; height: 34px; flex: none; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--acc); background: #0d1114; font: 700 14px var(--disp); color: var(--acc); }
+.ch-av img { width: 100%; height: 100%; object-fit: cover; }
+.ch-ev { display: flex; gap: 8px; font-size: 12px; color: var(--cool); border-left: 2px solid #1f5a5e; padding: 3px 8px; background: #0b1a1c; }
+.ch-me { font-size: 13px; font-style: italic; color: var(--muted); display: flex; gap: 6px; } .ch-me i { font-style: normal; font-weight: 700; }
+.ch-roll .log { margin: 0; padding: 0; } .ch-empty { color: var(--dim); font-size: 12.5px; }
+.ch-in { display: flex; gap: 6px; flex-wrap: wrap; } .ch-in select { max-width: 42%; min-height: 40px; } .ch-in input { flex: 1; min-width: 140px; min-height: 40px; }
+
+/* sıra ve kilit */
+.turnbox { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 6px 8px; background: #101418; }
+.turnbox.cur { border-color: var(--acc); color: var(--fg); } .turnbox b { color: var(--fg); font-family: var(--mono); font-weight: 600; }
+.am-lock { margin: 0; padding: 6px 8px; font-size: 12px; color: #ffcf6b; background: #241c06; border: 1px solid #5a4a10; }
+.lockbar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 7px 10px; margin-bottom: 10px; border: 1px solid var(--line2); font-size: 12.5px; background: var(--raise); }
+.lockbar.locked { border-color: #24502f; background: #0e1d13; } .lockbar.pending { border-color: #5a4a10; background: #1f1906; } .lockbar.draft { border-style: dashed; }
+.lb-st { font-weight: 600; } .lockbar.locked .lb-st::before { content: "🔒 "; } .lb-ip { margin-left: auto; font-family: var(--mono); } .lb-ip b { color: var(--acc); }
+.clog { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 60vh; overflow: auto; }
+.clog li { border: 1px solid var(--line); padding: 6px 8px; background: var(--raise); font-size: 12px; } .clog li.flag { border-color: var(--hot); }
+.clog li > div { display: flex; justify-content: space-between; gap: 8px; } .clog li span { color: var(--dim); font-family: var(--mono); font-size: 11px; } .clog p { margin: 3px 0 0; color: var(--muted); } .clog i { color: var(--cool); font-style: normal; }
+.capanel { max-height: calc(100% - 70px); overflow: auto; }
+/* IP */
+.ipbal { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); } .ipbal b { color: var(--acc); font-family: var(--mono); }
+.ipq { width: 100%; min-height: 34px; margin: 6px 0; }
+.iplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; max-height: 42vh; overflow: auto; }
+.ipr { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); background: var(--raise); }
+.ipr span { display: grid; } .ipr span b { font-size: 12.5px; font-weight: 600; } .ipr span i { color: var(--acc); font-style: normal; font-size: 11px; } .ipr small { color: var(--dim); font: 11px var(--mono); }
+.ipr.role { border-color: var(--cool); } .ipr .btn.on { border-color: var(--acc); color: var(--acc); }
+.ip-ses { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .ip-ses li { border: 1px solid var(--line); background: var(--raise); padding: 7px 8px; display: grid; gap: 4px; }
+.ip-ses small { color: var(--muted); font-size: 11.5px; } .ip-ses .row { display: flex; gap: 6px; flex-wrap: wrap; } .ip-ses input { flex: 1; min-width: 120px; }
 .crits { display: grid; gap: 4px; }
 .crit { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 8px; padding: 6px 8px; border: 1px solid rgba(255,74,95,.45); background: rgba(255,74,95,.07); }
 .crit b { color: #ff8090; font: 700 15px var(--disp); letter-spacing: .03em; }
@@ -621,6 +661,7 @@ label.mini input { width: 56px; min-height: 28px; }
 .am-it:hover, .am-it:focus-visible { border-color: #ff4a5f; }
 .am-it span { font-weight: 600; font-size: 13px; }
 .am-it small { font-size: 11px; color: var(--muted); }
+.am-it[disabled] { opacity: .55; cursor: not-allowed; border-style: dashed; }
 .am-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .tgtbar { position: absolute; left: 50%; transform: translateX(-50%); top: 54px; z-index: 11; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; background: rgba(14,18,20,.96); border: 1px solid #ff4a5f; padding: 7px 10px; font-size: 13px; max-width: calc(100% - 24px); box-shadow: 0 0 30px rgba(255,74,95,.25); }
 .tgtbar b { color: #ff8090; }
@@ -727,6 +768,7 @@ label.mini input { width: 56px; min-height: 28px; }
     <aside class="side">
       <nav class="tabs" role="tablist" aria-label="Masa">
         <button role="tab" data-tab="dice" aria-selected="true">Zar</button>
+        <button role="tab" data-tab="chat" aria-selected="false" data-n="">Sohbet</button>
         <button role="tab" data-tab="chars" aria-selected="false">Karakter</button>
         <button role="tab" data-tab="npc" aria-selected="false" class="gm-only">NPC</button>
         <button role="tab" data-tab="init" aria-selected="false">Sıra</button>
@@ -764,6 +806,11 @@ label.mini input { width: 56px; min-height: 28px; }
         <ol id="rollLog" class="log"></ol>
       </section>
 
+      <section class="tabpanel" id="tab-chat" hidden>
+        <div class="seg ch-f" role="group" aria-label="Göster"><button data-chf="all" class="on">Hepsi</button><button data-chf="chat">Sohbet</button><button data-chf="rolls">Zarlar ve olaylar</button></div>
+        <ul id="chatList" class="chat" aria-live="polite"></ul>
+        <div class="ch-in"><select id="chatTo" aria-label="Kime" hidden></select><input id="chatIn" maxlength="600" autocomplete="off" placeholder="Mesaj yaz… (/r 2d6 zar, /k karakter ağzından, /me eylem)" aria-label="Mesaj"><button class="btn primary" id="chatGo">Gönder</button></div>
+      </section>
       <section class="tabpanel" id="tab-chars" hidden>
         <div class="newrow"><select id="newRole" aria-label="Rol"></select><button class="btn primary" data-act="newRandom">Rastgele karakter</button><button class="btn" data-act="newBlank">Boş sayfa</button></div>
         <div id="charList" class="clist"></div>
@@ -783,7 +830,7 @@ label.mini input { width: 56px; min-height: 28px; }
       </section>
 
       <section class="tabpanel" id="tab-init" hidden>
-        <div class="inithead"><div class="round">Tur <b id="initRound">1</b></div><div class="btns gm-only"><button class="btn sm" data-act="initPrev">Önceki</button><button class="btn sm primary" data-act="initNext">Sonraki</button></div></div>
+        <div class="inithead"><div class="round">Tur <b id="initRound">1</b></div><div class="btns gm-only"><button class="btn sm" id="turnFree" data-act="turnFree" title="Açıkken herkes sadece kendi sırasında aksiyon alır">Sıra kuralı: açık</button><button class="btn sm" data-act="initPrev">Önceki</button><button class="btn sm primary" data-act="initNext">Sonraki</button></div></div>
         <ol id="initList" class="initlist"></ol>
         <div class="row gm-only"><button class="btn" data-act="initAll">Haritadakileri at</button><button class="btn danger" data-act="initClear">Sırayı temizle</button></div>
         <p class="hint">İnisiyatif REF + d10'dur. Sıradaki token haritada parlar; bir isme basınca harita ona odaklanır.</p>
@@ -798,6 +845,9 @@ label.mini input { width: 56px; min-height: 28px; }
         <h3>Gün sonu</h3>
         <p class="hint">Yeni güne geçince hızlı müdahaleler biter (kalıcı olanlar hariç) ve stabilize edilmiş, dinlenen karakterler BODY kadar can kazanır.</p>
         <button class="btn" data-act="newDay">Yeni gün</button>
+        <h3>Oturum sonu</h3>
+        <p class="hint">Oturum bitince oyunculara kitaptaki tabloya göre Improvement Points (IP) dağıt; oyuncular sayfalarındaki Geliştir ile harcar.</p>
+        <button class="btn primary" data-act="sessionEnd">Oturumu bitir · IP dağıt</button>
       </section>
 
       <section class="tabpanel" id="tab-map" hidden>
